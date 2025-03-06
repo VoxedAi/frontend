@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatSession } from "../../services/supabase";
+import { ChatSession } from "../../types/chat";
 import ChatSessionItem from "./ChatSessionItem";
 
 interface ChatsTabContentProps {

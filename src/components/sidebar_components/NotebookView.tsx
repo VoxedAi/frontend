@@ -4,10 +4,8 @@ import FilesTabContent from "./FilesTabContent";
 import ChatsTabContent from "./ChatsTabContent";
 
 const NotebookView: React.FC<NotebookViewProps> = ({
-  userId,
   isMobile,
   isCollapsed,
-  notebookName,
   activeTab,
   setActiveTab,
   files,

@@ -82,8 +82,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
-  const [allFoldersList, setAllFoldersList] = useState<any[]>([]);
-
   // Track if the component has loaded toggled files from server to prevent
   // overwriting server state with empty state during initial render
   const [hasLoadedToggledFiles, setHasLoadedToggledFiles] = useState(false);
@@ -122,11 +120,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     loadToggledFiles();
   }, [userId]);
-
-  // Update the flatFoldersList whenever needed (passed to collapsed sidebar)
-  const updateAllFoldersList = (folders: any[]) => {
-    setAllFoldersList(folders);
-  };
 
   // Debounce timer ref
   const saveToggledFilesTimerRef = useRef<NodeJS.Timeout | null>(null);

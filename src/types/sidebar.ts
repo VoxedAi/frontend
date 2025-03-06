@@ -79,10 +79,10 @@ export const FolderItemPropsSchema = z.object({
   isMobile: z.boolean(),
   isSelected: z.boolean(),
   expandedFolders: z.custom<Set<string>>(),
-  handleToggleFolder: z.function(),
-  handleSelectFolder: z.function(),
-  handleAddSubfolder: z.function(),
-  handleDeleteClick: z.function(),
+  handleToggleFolder: z.function().args(z.string(), z.custom<React.MouseEvent>()).returns(z.void()),
+  handleSelectFolder: z.function().args(z.string().nullable()).returns(z.void()),
+  handleAddSubfolder: z.function().args(z.string(), z.custom<React.MouseEvent>()).returns(z.void()),
+  handleDeleteClick: z.function().args(z.string(), z.custom<React.MouseEvent>()).returns(z.promise(z.void())),
 });
 
 // Type derived from the schema
@@ -109,9 +109,9 @@ export const ChatSessionItemPropsSchema = z.object({
   session: z.custom<ChatSession>(),
   isMobile: z.boolean(),
   isActive: z.boolean(),
-  setCurrentChatSession: z.function().optional(),
-  handleEditChatTitle: z.function().optional(),
-  confirmDeleteSession: z.function().optional(),
+  setCurrentChatSession: z.function().args(z.custom<ChatSession>()).returns(z.void()).optional(),
+  handleEditChatTitle: z.function().args(z.custom<ChatSession>()).returns(z.void()).optional(),
+  confirmDeleteSession: z.function().args(z.string()).returns(z.void()).optional(),
 });
 
 // Type derived from the schema

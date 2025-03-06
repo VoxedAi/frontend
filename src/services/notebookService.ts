@@ -67,6 +67,7 @@ export async function getNotebook(
   notebookId: string,
 ): Promise<{ success: boolean; data?: Notebook; error?: any }> {
   try {
+    console.log("getNotebook: Fetching notebook with ID:", notebookId);
     const { data, error } = await supabase
       .from("notebooks")
       .select("*")
@@ -74,12 +75,19 @@ export async function getNotebook(
       .single();
 
     if (error) {
+      console.error("getNotebook: Supabase error:", error);
       throw error;
     }
 
+    if (!data) {
+      console.error("getNotebook: No data returned for notebook ID:", notebookId);
+      return { success: false, error: "Notebook not found" };
+    }
+
+    console.log("getNotebook: Successfully fetched notebook:", data);
     return { success: true, data };
   } catch (error) {
-    console.error("Error fetching notebook:", error);
+    console.error("getNotebook: Error fetching notebook:", error);
     return { success: false, error };
   }
 }

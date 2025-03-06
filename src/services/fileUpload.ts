@@ -284,7 +284,7 @@ export async function deleteFile(
  * Call the API to delete embeddings for a file
  * @param fileId The Pinecone ID to delete
  */
-async function deleteEmbeddings(fileId: string): Promise<void> {
+export async function deleteEmbeddings(fileId: string): Promise<void> {
   try {
     console.log("[DEBUG] Starting embeddings deletion for file:", fileId);
 

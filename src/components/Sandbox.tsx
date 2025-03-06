@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import languageFiles from "../utils/codeExamples";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { githubLight, atomDark } from "@codesandbox/sandpack-themes";
-import { FaColumns, FaChevronDown, FaChevronUp, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaColumns, FaChevronDown, FaEyeSlash } from "react-icons/fa";
 import { useTheme } from "../contexts/ThemeContext";
 
 import { python } from "@codemirror/lang-python";
@@ -15,8 +15,6 @@ type ConsoleLayoutMode = "side-by-side" | "below" | "collapsed";
 
 // Custom console output component
 const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, isRunning, setIsRunning }: { result: CodeExecutionResponse | null, setCodeExecutionResult: React.Dispatch<React.SetStateAction<CodeExecutionResponse | null>>, setLayoutMode: React.Dispatch<React.SetStateAction<SandpackLayoutMode>>, isRunning: boolean, setIsRunning: React.Dispatch<React.SetStateAction<boolean>> }) => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   
   const renderWithLineNumbers = (text: string | undefined) => {
     if (!text) return null;
@@ -454,7 +452,7 @@ function RunButton({
     <button
       onClick={runCode}
       disabled={isRunning}
-      className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+      className="px-4 py-2 bg-primary text-primary rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
     >
       {isRunning ? (
         <>

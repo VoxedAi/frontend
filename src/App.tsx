@@ -21,6 +21,7 @@ import { UserProvider } from "./contexts/UserContext";
 import { useTheme } from "./contexts/ThemeContext";
 import TokenRefresher from "./components/TokenRefresher";
 import LoadingSpinner from "./components/LoadingSpinner";
+import DevelopmentBanner from "./components/DevelopmentBanner";
 
 // Web App
 const NotebooksPage = lazy(() => import("./pages/notebooks/Notebooks"));
@@ -42,6 +43,7 @@ export default function App() {
       </SignedIn>
       
       <Router>
+        <DevelopmentBanner />
         <Toaster
           position="top-center"
           toastOptions={{

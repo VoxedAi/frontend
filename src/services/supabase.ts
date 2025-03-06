@@ -1,4 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Folder, Notebook, FolderNotebook } from "../types/notebook";
+import type { ChatSession } from "../types/chat";
+
+// Export the types so they can be imported from this file
+export type { Folder, Notebook, FolderNotebook, ChatSession };
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON;

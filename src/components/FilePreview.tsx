@@ -155,7 +155,7 @@ const FileIcon = ({ type }: { type: string }) => {
 };
 
 const FilePreview: React.FC<FilePreviewProps> = ({ isOpen, onClose, file }) => {
-  const { supabaseUserId, getSupabaseClient, refreshSupabaseToken } = useSupabaseUser();
+  const { getSupabaseClient } = useSupabaseUser();
   const [content, setContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

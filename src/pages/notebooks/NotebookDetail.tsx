@@ -23,7 +23,6 @@ import Sidebar from "../../components/Sidebar";
 import ChatInterface from "../../components/ChatInterface";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { getCheckedFiles } from "../../components/Sidebar";
 import toast from "react-hot-toast";
 import ResizablePanel from "../../components/note/ResizablePanel";
 import NotesPanel from "../../components/note/NotesPanel";
@@ -36,7 +35,7 @@ interface ExtendedNotebookFile extends NotebookFile {
 }
 
 export default function NotebookDetailPage() {
-  const { notebookId } = useParams<{ notebookId: string }>();
+  const { id: notebookId } = useParams<{ id: string }>();
   const {
     supabaseUserId,
     isLoading: isUserLoading,
@@ -60,7 +59,6 @@ export default function NotebookDetailPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<"files" | "chats">("files");
-  const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
   const [editedChatTitle, setEditedChatTitle] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
@@ -78,14 +76,21 @@ export default function NotebookDetailPage() {
   // Fetch notebook data
   useEffect(() => {
     async function fetchNotebookData() {
-      if (!notebookId) return;
+      if (!notebookId) {
+        console.error("No notebookId provided");
+        return;
+      }
 
+      console.log("Fetching notebook with ID:", notebookId);
       setIsLoading(true);
       try {
         const result = await getNotebook(notebookId);
+        console.log("Notebook fetch result:", result);
         if (result.success && result.data) {
           setNotebook(result.data);
+          console.log("Notebook data set successfully:", result.data);
         } else {
+          console.error("Failed to load notebook", result.error);
           setError("Failed to load notebook");
         }
       } catch (err) {
@@ -575,8 +580,6 @@ export default function NotebookDetailPage() {
     )
       return;
 
-    const checkedFiles = getCheckedFiles();
-
     const messageText = inputMessage.trim();
     setInputMessage("");
 
@@ -749,7 +752,6 @@ export default function NotebookDetailPage() {
 
   const handleEditChatTitle = (session: ChatSession) => {
     setEditedChatTitle(session.title);
-    setIsEditingChatTitle(true);
   };
 
   /**
@@ -833,6 +835,14 @@ export default function NotebookDetailPage() {
   const toggleSandbox = () => {
     setIsSandboxExpanded(!isSandboxExpanded);
   };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
 
   if (isUserLoading || isLoading) {
     return (

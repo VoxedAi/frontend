@@ -19,7 +19,7 @@ const FolderView: React.FC<FolderViewProps> = ({
   onFoldersUpdated,
 }) => {
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [unorganizedNotebooks, setUnorganizedNotebooks] = useState<Notebook[]>(
+  const [_unorganizedNotebooks, setUnorganizedNotebooks] = useState<Notebook[]>(
     [],
   );
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -34,7 +34,7 @@ const FolderView: React.FC<FolderViewProps> = ({
     id: string;
     isParent: boolean;
   } | null>(null);
-  const [allFoldersList, setAllFoldersList] = useState<Folder[]>([]);
+  const [_allFoldersList, setAllFoldersList] = useState<Folder[]>([]);
 
   useEffect(() => {
     if (!userId) return;

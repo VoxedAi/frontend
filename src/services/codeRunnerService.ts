@@ -1,5 +1,3 @@
-import { supabase } from './supabase';
-
 /**
  * Service to handle code execution requests.
  * Uses a real API endpoint to execute code in a secure sandbox.

@@ -10,6 +10,7 @@ const Navbar: React.FC = () => {
         >
             Voxed
         </a>
+        <img src="/voxed.png" alt="Voxed" className="w-10 h-10" />
 
         <div className="hidden md:flex gap-10">
             <a

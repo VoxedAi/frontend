@@ -4,13 +4,13 @@ const Navbar: React.FC = () => {
     const { isSignedIn } = useAuth();
     return (
         <nav className="flex justify-between items-center py-8 relative z-10">
-        <a
+        {/* <a
             href="/"
             className="flex items-center gap-3 font-bold text-4xl color-primary no-underline"
         >
             Voxed
-        </a>
-        <img src="/voxed.png" alt="Voxed" className="w-10 h-10" />
+        </a> */}
+        <img src="/voxed.png" alt="Voxed" className="flex justify-between items-center py-8 relative z-10 w-24" />
 
         <div className="hidden md:flex gap-10">
             <a

@@ -24,23 +24,55 @@ export default function ResizablePanel({
   // Track resize state
   const [isDragging, setIsDragging] = useState(false);
   
+  // Track which panel is visible on mobile
+  const [mobileActivePanel, setMobileActivePanel] = useState<'left' | 'right'>('left');
+  
+  // Track if we're on mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
   // Refs for DOM elements
   const containerRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const resizeBarRef = useRef<HTMLDivElement>(null);
 
+  // Check if we're on mobile and set up resize listener
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Set up listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
   // Handle panel expansion/collapse
   useEffect(() => {
     if (isRightPanelExpanded) {
       // Restore previous width when expanding
       setRightPanelWidth(rightPanelWidthBeforeCollapse.current);
+      // On mobile, switch to right panel when it's expanded
+      if (isMobile) {
+        setMobileActivePanel('right');
+      }
     } else {
       // Save current width before collapsing
       rightPanelWidthBeforeCollapse.current = rightPanelWidth;
       setRightPanelWidth(0);
+      // On mobile, switch to left panel when right panel is collapsed
+      if (isMobile) {
+        setMobileActivePanel('left');
+      }
     }
-  }, [isRightPanelExpanded]);
+  }, [isRightPanelExpanded, isMobile]);
 
   // Calculate current panel widths
   const effectiveRightPanelWidth = isRightPanelExpanded ? rightPanelWidth : 0;
@@ -151,22 +183,49 @@ export default function ResizablePanel({
     };
   }, [isDragging, minRightPanelWidth, maxRightPanelWidth]);
 
+  // Handle mobile panel switching
+  const toggleMobilePanel = () => {
+    if (mobileActivePanel === 'left' && isRightPanelExpanded) {
+      setMobileActivePanel('right');
+    } else if (mobileActivePanel === 'right') {
+      setMobileActivePanel('left');
+    }
+  };
+
   return (
     <div ref={containerRef} className="flex h-full w-full relative">
+      {/* Mobile panel switcher - only visible on small screens when right panel is expanded */}
+      {isRightPanelExpanded && (
+        <div className="md:hidden fixed bottom-4 right-4 z-20">
+          <button 
+            onClick={toggleMobilePanel}
+            className="bg-primary text-white p-2 rounded-full shadow-lg"
+            aria-label={`Switch to ${mobileActivePanel === 'left' ? 'right' : 'left'} panel`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M8 21H3v-5"></path>
+              <path d="M21 3l-7 7"></path>
+              <path d="M3 21l7-7"></path>
+            </svg>
+          </button>
+        </div>
+      )}
+      
       {/* Left panel */}
       <div 
         ref={leftPanelRef}
-        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'}`}
-        style={{ width: `${leftPanelWidth}%` }}
+        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} md:block ${mobileActivePanel === 'right' ? 'hidden' : 'block'}`}
+        style={{ width: isMobile ? '100%' : `${leftPanelWidth}%` }}
       >
         {leftPanel}
       </div>
       
-      {/* Resize handle - Explicitly sized with visible area */}
+      {/* Resize handle - Explicitly sized with visible area - Only visible on desktop */}
       {isRightPanelExpanded && (
         <div 
           ref={resizeBarRef}
-          className={`absolute h-full z-10 cursor-col-resize flex items-center justify-center select-none ${isDragging ? '' : 'transition-[left] duration-300 ease-out'}`}
+          className={`absolute h-full z-10 cursor-col-resize flex items-center justify-center select-none ${isDragging ? '' : 'transition-[left] duration-300 ease-out'} hidden md:flex`}
           style={{
             left: `${leftPanelWidth}%`,
             width: '12px',  // Wider hit area for easier interaction
@@ -189,8 +248,12 @@ export default function ResizablePanel({
       {/* Right panel */}
       <div 
         ref={rightPanelRef}
-        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'}`}
-        style={{ width: isRightPanelExpanded ? `${effectiveRightPanelWidth}%` : 0 }}
+        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} md:block ${mobileActivePanel === 'left' ? 'hidden' : 'block'}`}
+        style={{ 
+          width: isMobile 
+            ? '100%' 
+            : (isRightPanelExpanded ? `${effectiveRightPanelWidth}%` : 0)
+        }}
       >
         {rightPanel}
       </div>

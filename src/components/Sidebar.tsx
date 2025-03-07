@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProps } from "./sidebar_components/SidebarTypes";
 import {
-  useMediaQuery,
   updateCheckedFiles,
 } from "./sidebar_components/SidebarUtils";
 import SidebarHeader from "./sidebar_components/SidebarHeader";
@@ -11,6 +10,7 @@ import CollapsedSidebar from "./sidebar_components/CollapsedSidebar";
 import SidebarOverlay from "./sidebar_components/SidebarOverlay";
 import { saveToggledFiles, getToggledFiles } from "../services/userService";
 import { getCheckedFiles as getCheckedFilesFromUtils } from "./sidebar_components/SidebarUtils";
+import { useMobile } from "../contexts/MobileContext";
 
 // Export the getCheckedFiles function to maintain external API compatibility
 export const getCheckedFiles = (): string[] => {
@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set());
 
   // Check if we're on a mobile device
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMobile("(max-width: 768px)");
 
   // Effect to load toggled files from server on mount
   useEffect(() => {
@@ -214,7 +214,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, [files, hasLoadedToggledFiles]);
 
   return (
-    <>
+    <div className="z-51">
       {/* Collapsed Sidebar UI (Mobile and Desktop) */}
       <CollapsedSidebar
         isMobile={isMobile}
@@ -302,7 +302,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
         )}
       </div>
-    </>
+    </div>
   );
 };
 

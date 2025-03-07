@@ -27,6 +27,7 @@ import toast from "react-hot-toast";
 import ResizablePanel from "../../components/note/ResizablePanel";
 import NotesPanel from "../../components/note/NotesPanel";
 import Sandbox from "../../components/Sandbox";
+import { useMobile } from "../../contexts/MobileContext";
 
 // Extended NotebookFile type to include processing status
 interface ExtendedNotebookFile extends NotebookFile {
@@ -72,6 +73,13 @@ export default function NotebookDetailPage() {
 
   error;
   editedChatTitle;
+  const isMobile = useMobile("(max-width: 768px)");
+
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarExpanded(false);
+    }
+  }, [isMobile]);
 
   // Fetch notebook data
   useEffect(() => {

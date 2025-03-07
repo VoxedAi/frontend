@@ -16,7 +16,7 @@ import {
 import type { Notebook, Folder } from "../../types/notebook";
 import Sidebar from "../../components/Sidebar";
 import NotebookModal from "../../components/NotebookModal";
-// import Header from '../../components/Header';
+import { useMobile } from "../../contexts/MobileContext";
 
 export default function NotebooksPage() {
   const navigate = useNavigate();
@@ -31,6 +31,14 @@ export default function NotebooksPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [includeNestedNotebooks, setIncludeNestedNotebooks] = useState(false);
+
+  const isMobile = useMobile("(max-width: 768px)");
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarCollapsed(true);
+    }
+  }, [isMobile]);
 
   // Function to refresh folders
   const refreshFolders = async () => {

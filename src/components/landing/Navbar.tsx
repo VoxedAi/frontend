@@ -1,7 +1,9 @@
 import { useAuth } from '@clerk/clerk-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const Navbar: React.FC = () => {
     const { isSignedIn } = useAuth();
+    const { theme } = useTheme();
     return (
         <nav className="flex justify-between items-center py-8 relative z-10">
         {/* <a
@@ -10,8 +12,9 @@ const Navbar: React.FC = () => {
         >
             Voxed
         </a> */}
-        <img src="/voxed.png" alt="Voxed" className="flex justify-between items-center py-8 relative z-10 w-24" />
-
+        <a href="/" className="flex justify-between items-center py-8 relative z-10 w-12 cursor-pointer">
+            <img src={theme === "dark" ? "/voxed-icon-dark.png" : "/voxed-icon.png"} alt="Voxed" className="w-full" />
+        </a>
         <div className="hidden md:flex gap-10">
             <a
             href="#"

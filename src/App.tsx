@@ -44,6 +44,7 @@ export default function App() {
       
       <Router>
         <DevelopmentBanner />
+        <Header />
         <Toaster
           position="top-center"
           toastOptions={{
@@ -89,11 +90,9 @@ export default function App() {
             element={
               <>
                 <SignedIn>
-                  <Header />
                   <HomePage />
                 </SignedIn>
                 <SignedOut>
-                  <Header />
                   <HomePage />
                 </SignedOut>
               </>

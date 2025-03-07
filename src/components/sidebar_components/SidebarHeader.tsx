@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface SidebarHeaderProps {
   mode: "folders" | "notebook";
@@ -25,7 +26,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   isSandboxExpanded,
 }) => {
   const navigate = useNavigate();
-
+  const { theme } = useTheme();
   // Determine whether to show the notes toggle button
   const showNotesToggle = mode === "notebook" && toggleNotesPanel;
   
@@ -36,6 +37,11 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
     <div className="p-4 flex items-center justify-between transition-colors duration-200">
       {(!isCollapsed || isMobile) && (
         <div className="flex items-center">
+          {mode === "folders" && (
+            <a href="/" className="mr-2 p-1 rounded-md hover:bg-hover cursor-pointer transition-all duration-200 w-8">
+              <img src={theme === "dark" ? "/voxed-icon-dark.png" : "/voxed-icon.png"} alt="Voxed" className="w-full" />
+            </a>
+          )}
           {mode === "notebook" && (
             <button
               onClick={() => navigate("/notebooks")}

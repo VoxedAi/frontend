@@ -41,28 +41,32 @@ export default function ChatBar({
             </div>
             <div className="flex items-center mx-auto px-4 py-4 justify-between">
                 <div className="space-x-2 flex items-center relative ml-1">
-                <button
-                    aria-disabled="false"
-                    aria-label="Upload files and more"
-                    className="flex items-center justify-center h-9 rounded-full border border-adaptive text-token-text-secondary w-9 hover:bg-token-main-surface-secondary dark:hover:bg-gray-700"
-                >
-                    <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-label=""
-                    className="h-[18px] w-[18px]"
+
+                {/* Upload Files Button */}
+                <Tooltip content="Coming Soon">
+                    <button
+                        aria-disabled="false"
+                        aria-label="Upload files and more"
+                        className="flex items-center justify-center h-9 rounded-full border border-adaptive text-token-text-secondary w-9 hover:bg-token-main-surface-secondary dark:hover:bg-gray-700"
                     >
-                    <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M12 3C12.5523 3 13 3.44772 13 4L13 11H20C20.5523 11 21 11.4477 21 12C21 12.5523 20.5523 13 20 13L13 13L13 20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20L11 13L4 13C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11L11 11L11 4C11 3.44772 11.4477 3 12 3Z"
-                        fill="currentColor"
-                    ></path>
-                    </svg>
-                </button>
+                        <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-label=""
+                        className="h-[18px] w-[18px]"
+                        >
+                        <path
+                            fillRule="evenodd"
+                            clipRule="evenodd"
+                            d="M12 3C12.5523 3 13 3.44772 13 4L13 11H20C20.5523 11 21 11.4477 21 12C21 12.5523 20.5523 13 20 13L13 13L13 20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20L11 13L4 13C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11L11 11L11 4C11 3.44772 11.4477 3 12 3Z"
+                            fill="currentColor"
+                        ></path>
+                        </svg>
+                    </button>
+                </Tooltip>
                 
                 {/* Coding Question Toggle Button */}
                 <Tooltip content="Adds code as context" title={isCodingQuestion ? "Coding question: On" : "Coding question: Off"}>
@@ -162,12 +166,14 @@ export default function ChatBar({
                     </button>
                 </Tooltip>
 
-                <button
-                    type="button"
-                    id="radix-:rr1:"
-                    aria-haspopup="menu"
-                    aria-expanded="false"
-                    data-state="closed"
+                {/* Tool Button */}
+                <Tooltip content="Coming Soon">
+                    <button
+                        type="button"
+                        id="radix-:rr1:"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        data-state="closed"
                     className="_toolsButton_d2h2h_8 flex h-9 min-w-9 items-center justify-center rounded-full border border-adaptive p-1 text-xs font-semibold text-token-text-secondary focus-visible:outline-black disabled:opacity-30 radix-state-open:bg-black/10 can-hover:hover:bg-token-main-surface-secondary dark:focus-visible:outline-white dark:can-hover:hover:bg-gray-700"
                     aria-label="Use a tool"
                 >
@@ -186,7 +192,8 @@ export default function ChatBar({
                         fill="currentColor"
                     ></path>
                     </svg>
-                </button>
+                    </button>
+                </Tooltip>
                 <Tooltip
                     content="Toggle unused files off"
                     title="For Best Results"

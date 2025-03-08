@@ -37,6 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   handleFileUpload,
   notebookName = "",
   uploadingFiles = new Set(),
+  // Note question mode
+  isNoteQuestion = false,
 }) => {
   // Add state to track hover on collapsed sidebar
   const [isHoveringCollapsed, setIsHoveringCollapsed] = useState(false);
@@ -83,6 +85,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     toggleFile,
     validateFiles
   } = useToggledFiles(userId);
+
+  // State for note toggled files
+  const [noteToggledFiles, setNoteToggledFiles] = useState<Set<string>>(new Set());
+
+  // Update note toggled files when files or isNoteQuestion changes
+  useEffect(() => {
+    if (isNoteQuestion) {
+      const noteFiles = files.filter(file => file.is_note);
+      setNoteToggledFiles(new Set(noteFiles.map(file => file.id)));
+    } else {
+      setNoteToggledFiles(new Set());
+    }
+  }, [isNoteQuestion]);
 
   // Effect to validate toggled files when files change
   useEffect(() => {
@@ -165,11 +180,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               setCurrentChatSession={setCurrentChatSession}
               handleFileUpload={handleFileUpload}
               uploadingFiles={uploadingFiles}
-              checkedFiles={toggledFiles}
+              checkedFiles={isNoteQuestion ? noteToggledFiles : toggledFiles}
               toggleFileChecked={(fileId, e) => {
                 e.stopPropagation();
-                toggleFile(fileId);
+                // If in note question mode, don't allow toggling files
+                if (!isNoteQuestion) {
+                  toggleFile(fileId);
+                }
               }}
+              isNoteQuestion={isNoteQuestion}
             />
           )}
         </div>

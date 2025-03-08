@@ -14,12 +14,16 @@ import { getToggledFiles } from "./userService";
  * @param onStreamUpdate Callback for streaming updates
  * @param userId User ID for tracking
  * @param isCodingQuestion Whether this is a coding-related question
+ * @param isNoteQuestion Whether this is a note-related question
+ * @param noteToggledFiles Optional array of note file IDs to use when isNoteQuestion is true
  */
 export async function streamChatWithGemini(
   history: Message[],
   onStreamUpdate: (content: string) => void,
   userId: string | null,
-  isCodingQuestion: boolean = true,
+  isCodingQuestion: boolean = false,
+  isNoteQuestion: boolean = false,
+  noteToggledFiles?: string[],
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
@@ -52,8 +56,13 @@ export async function streamChatWithGemini(
     let toggledFilesIds: string[] | null = null;
     let queryRequest: any = null;
 
-    if (userId) {
-       toggledFilesIds = await getToggledFiles(userId);
+    // If isNoteQuestion is true and noteToggledFiles is provided, use those files
+    // Otherwise, get the toggled files from the user service
+    if (isNoteQuestion && noteToggledFiles && noteToggledFiles.length > 0) {
+      toggledFilesIds = noteToggledFiles;
+      console.log("Using note toggled files:", toggledFilesIds);
+    } else if (userId) {
+      toggledFilesIds = await getToggledFiles(userId);
       console.log("Toggled files IDs:", toggledFilesIds);
     }
 

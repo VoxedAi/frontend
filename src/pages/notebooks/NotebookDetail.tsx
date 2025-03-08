@@ -72,6 +72,9 @@ export default function NotebookDetailPage() {
   const [isNotesPanelExpanded, setIsNotesPanelExpanded] = useState(false);
   // Sandbox panel state
   const [isSandboxExpanded, setIsSandboxExpanded] = useState(false);
+  
+  // State for note toggled files
+  const [noteToggledFiles, setNoteToggledFiles] = useState<Set<string>>(new Set());
 
   // Function to add a new file to the files state
   const addNewFile = useCallback((newFile: ExtendedNotebookFile) => {
@@ -86,6 +89,16 @@ export default function NotebookDetailPage() {
       )
     );
   }, []);
+
+  // Update note toggled files when files or isNoteQuestion changes
+  useEffect(() => {
+    if (isNoteQuestion) {
+      const noteFiles = files.filter(file => file.is_note);
+      setNoteToggledFiles(new Set(noteFiles.map(file => file.id)));
+    } else {
+      setNoteToggledFiles(new Set());
+    }
+  }, [files, isNoteQuestion]);
 
   error;
   editedChatTitle;
@@ -668,6 +681,8 @@ export default function NotebookDetailPage() {
           },
           supabaseUserId,
           isCodingQuestion, // Pass the isCodingQuestion state
+          isNoteQuestion, // Pass the isNoteQuestion state
+          isNoteQuestion ? Array.from(noteToggledFiles) : undefined // Pass note toggled files when in note question mode
         );
 
         console.log("Streaming complete. Saving AI message to Supabase");
@@ -923,6 +938,7 @@ export default function NotebookDetailPage() {
         isNotesPanelExpanded={isNotesPanelExpanded}
         toggleSandbox={toggleSandbox}
         isSandboxExpanded={isSandboxExpanded}
+        isNoteQuestion={isNoteQuestion}
       />
 
       <div className="flex-1 overflow-hidden flex flex-col">

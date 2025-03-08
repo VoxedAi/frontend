@@ -30,6 +30,9 @@ export const SidebarPropsSchema = z.object({
   toggleSandbox: z.function().args().returns(z.void()).optional(),
   isSandboxExpanded: z.boolean().optional(),
 
+  // Note question mode
+  isNoteQuestion: z.boolean().optional(),
+
   // Notebook-specific props (optional)
   mode: z.enum(["folders", "notebook"]).optional(),
   activeTab: z.enum(["files", "chats"]).optional(),
@@ -174,6 +177,7 @@ export const NotebookViewPropsSchema = z.object({
     .function()
     .args(z.string(), z.custom<React.MouseEvent>())
     .returns(z.void()),
+  isNoteQuestion: z.boolean().optional(),
 });
 
 // Type derived from the schema

@@ -3,7 +3,6 @@ import {
   getToggledFiles, 
   saveToggledFiles, 
   updateToggledFilesCache, 
-  getToggledFilesFromCache 
 } from '../services/userService';
 
 /**

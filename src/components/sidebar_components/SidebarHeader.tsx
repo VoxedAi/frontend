@@ -38,7 +38,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
       {(!isCollapsed || isMobile) && (
         <div className="flex items-center">
           {mode === "folders" && (
-            <a href="/" className="mr-2 p-1 rounded-md hover:bg-hover cursor-pointer transition-all duration-200 w-8">
+            <a href="https://voxed.ai" className="mr-2 p-1 rounded-md hover:bg-hover cursor-pointer transition-all duration-200 w-8">
               <img src={theme === "dark" ? "/voxed-icon-dark.png" : "/voxed-icon.png"} alt="Voxed" className="w-full" />
             </a>
           )}

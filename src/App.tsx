@@ -12,7 +12,6 @@ import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 // Marketing Pages
-import HomePage from "./pages/Home";
 import SignInUp from "./pages/auth/SignIn-Up";
 import Header from "./components/Header";
 
@@ -75,27 +74,11 @@ export default function App() {
           }}
         />
         <Routes>
-          {/* Catch all routes */}
           <Route
             path="*"
             element={
-              <Navigate to="/" />
-            }
-          />
-
-          {/* Marketing Pages */}
-          <Route
-            path="/"
-            element={
               <>
-                <SignedIn>
-                  <DevelopmentBanner />
-                  <HomePage />
-                </SignedIn>
-                <SignedOut>
-                  <DevelopmentBanner />
-                  <HomePage />
-                </SignedOut>
+                <Navigate to="/notebooks" />
               </>
             }
           />
@@ -127,7 +110,6 @@ export default function App() {
               </>
             }
           />
-          {/* End Marketing Pages */}
 
           {/* Web App - Wrap lazy-loaded components with Suspense */}
           <Route path="/notebooks" element={

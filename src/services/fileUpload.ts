@@ -429,6 +429,7 @@ export async function deleteFileWithRetry(
   getClientFn: () => Promise<any>,
 ): Promise<{ success: boolean, error?: any }> {
   // Function to handle file deletion with retry logic
+  getClientFn;
   const deleteWithRetryInternal = async (retryCount = 0): Promise<any> => {
     try {
       // If retrying, refresh the token first

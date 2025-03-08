@@ -12,7 +12,7 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useSupabaseUser } from "../../contexts/UserContext";
-import { uploadFile, uploadAndProcessFile, processFile } from "../../services/fileUpload";
+import { uploadAndProcessFile, processFile } from "../../services/fileUpload";
 import { debounce } from "../../utils/helpers";
 import type { NotebookFile } from "../../types/notebook";
 import toast from "react-hot-toast";

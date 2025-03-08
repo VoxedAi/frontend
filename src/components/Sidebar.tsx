@@ -81,7 +81,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Use our custom hook for toggled files
   const { 
     toggledFiles, 
-    isLoading: isLoadingToggledFiles, 
     toggleFile,
     validateFiles
   } = useToggledFiles(userId);

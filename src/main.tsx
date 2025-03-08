@@ -29,7 +29,12 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ClerkProvider
+        domain=".voxed.ai"
         publishableKey={PUBLISHABLE_KEY}
+        routerPush={(to) => window.location.href = to}
+        routerReplace={(to) => window.location.replace(to)}
+        isSatellite={true}
+        signInUrl="https://voxed.ai/sign-in"
         appearance={{
           baseTheme: window.matchMedia("(prefers-color-scheme: dark)").matches
             ? dark

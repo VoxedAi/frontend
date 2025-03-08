@@ -113,26 +113,41 @@ export default function App() {
 
           {/* Web App - Wrap lazy-loaded components with Suspense */}
           <Route path="/notebooks" element={
-            <SignedIn>
-              <Suspense fallback={<LoadingSpinner size="large" />}>
-                <DevelopmentBanner />
-                <NotebooksPage />
-              </Suspense>
-            </SignedIn>
+            <>
+              <SignedIn>
+                <Suspense fallback={<LoadingSpinner size="large" />}>
+                  <DevelopmentBanner />
+                  <NotebooksPage />
+                </Suspense>
+              </SignedIn>
+              <SignedOut>
+                <Navigate to="/sign-in" />
+              </SignedOut>
+            </>
           } />
           <Route path="/notebooks/:id" element={
-            <SignedIn>
-              <Suspense fallback={<LoadingSpinner size="large" />}>
-                <NotebookDetailPage />
-              </Suspense>
-            </SignedIn>
+            <>
+              <SignedIn>
+                <Suspense fallback={<LoadingSpinner size="large" />}>
+                  <NotebookDetailPage />
+                </Suspense>
+              </SignedIn>
+              <SignedOut>
+                <Navigate to="/sign-in" />
+              </SignedOut>
+            </>
           } />
           <Route path="/sandbox" element={
-            <SignedIn>
-              <Suspense fallback={<LoadingSpinner size="large" />}>
-                <Sandbox />
-              </Suspense>
-            </SignedIn>
+            <>
+              <SignedIn>
+                <Suspense fallback={<LoadingSpinner size="large" />}>
+                  <Sandbox />
+                </Suspense>
+              </SignedIn>
+              <SignedOut>
+                <Navigate to="/sign-in" />
+              </SignedOut>
+            </>
           } />
           {/* End Web App */}
           

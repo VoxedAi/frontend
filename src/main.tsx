@@ -34,7 +34,9 @@ createRoot(document.getElementById("root")!).render(
         routerPush={(to) => window.location.href = to}
         routerReplace={(to) => window.location.replace(to)}
         isSatellite={true}
-        signInUrl="https://voxed.ai/sign-in"
+        signInUrl="http://voxed.ai/sign-in"
+        signInFallbackRedirectUrl="https://app.voxed.ai/"
+        signInForceRedirectUrl="https://app.voxed.ai/"
         appearance={{
           baseTheme: window.matchMedia("(prefers-color-scheme: dark)").matches
             ? dark

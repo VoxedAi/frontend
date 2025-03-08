@@ -78,7 +78,7 @@ export default function App() {
             path="*"
             element={
               <>
-                <Navigate to="/notebooks" />
+                <Navigate to="/sign-in" />
               </>
             }
           />

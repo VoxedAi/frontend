@@ -12,15 +12,49 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useSupabaseUser } from "../../contexts/UserContext";
-import { uploadFile } from "../../services/fileUpload";
+import { uploadFile, uploadAndProcessFile, processFile } from "../../services/fileUpload";
 import { debounce } from "../../utils/helpers";
 import type { NotebookFile } from "../../types/notebook";
+import toast from "react-hot-toast";
 
 interface NotesPanelProps {
   notebookId: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onFileCreated?: (newFile: NotebookFile) => void;
+  onFileProcessingUpdate?: (fileId: string, isProcessing: boolean) => void;
 }
+
+// Create a debounced toast function to prevent duplicate notifications
+const debouncedToast = (() => {
+  const toastTimers: Record<string, NodeJS.Timeout> = {};
+  
+  return {
+    success: (message: string, delay = 500) => {
+      const key = `success-${message}`;
+      if (toastTimers[key]) {
+        clearTimeout(toastTimers[key]);
+      }
+      
+      toastTimers[key] = setTimeout(() => {
+        toast.success(message);
+        delete toastTimers[key];
+      }, delay);
+    },
+    
+    error: (message: string, delay = 500) => {
+      const key = `error-${message}`;
+      if (toastTimers[key]) {
+        clearTimeout(toastTimers[key]);
+      }
+      
+      toastTimers[key] = setTimeout(() => {
+        toast.error(message);
+        delete toastTimers[key];
+      }, delay);
+    }
+  };
+})();
 
 // Error boundary component to catch errors in BlockNoteView
 class EditorErrorBoundary extends Component<
@@ -80,6 +114,8 @@ export default function NotesPanel({
   notebookId,
   isExpanded,
   onToggleExpand,
+  onFileCreated,
+  onFileProcessingUpdate,
 }: NotesPanelProps) {
   const [initialContent, setInitialContent] = useState<
     PartialBlock[] | "loading"
@@ -99,6 +135,8 @@ export default function NotesPanel({
   const editorRef = useRef<BlockNoteEditor | null>(null);
   const [editorError, setEditorError] = useState<Error | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  // Add a ref to track if a default note is being created
+  const isCreatingDefaultNote = useRef(false);
 
   // Handle clicks outside dropdown to close it
   useEffect(() => {
@@ -284,9 +322,117 @@ export default function NotesPanel({
     [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken],
   );
 
+  // Create a new note
+  const createNewNote = useCallback(async () => {
+    if (!notebookId || !supabaseUserId) return;
+    
+    // Prevent multiple simultaneous note creations
+    if (isCreatingDefaultNote.current) {
+      console.log("Note creation already in progress, skipping duplicate request");
+      return;
+    }
+    
+    // Set flag to indicate we're creating a note
+    isCreatingDefaultNote.current = true;
+
+    try {
+      // Create a unique note name
+      const newNoteName = `Note_${new Date().toISOString().slice(0, 19).replace(/[T:.]/g, "-")}`;
+
+      // Create a blank editor to get a valid initial content
+      const tempEditor = BlockNoteEditor.create();
+      const validInitialContent = tempEditor.document;
+
+      // Create file
+      const contentString = JSON.stringify(validInitialContent);
+      const contentBlob = new Blob([contentString], {
+        type: "application/json",
+      });
+      const file = new File([contentBlob], `${newNoteName}.json`, {
+        type: "application/json",
+      });
+
+      // Use uploadAndProcessFile instead of uploadFile directly
+      const result = await uploadAndProcessFile(
+        file,
+        notebookId,
+        supabaseUserId,
+        refreshSupabaseToken,
+        getSupabaseClient,
+        true // Set isNote to true
+      );
+
+      if (result.success && result.data) {
+        const newNoteFile = result.data;
+        setNotesFiles((prev) => [newNoteFile, ...prev]);
+        setCurrentNoteFile(newNoteFile);
+        setCurrentNoteName(newNoteName);
+        setInitialContent(validInitialContent);
+        setIsDropdownOpen(false);
+        
+        // Notify parent component about the new file
+        if (onFileCreated) {
+          onFileCreated(newNoteFile);
+        }
+        
+        // Show success toast for creation
+        debouncedToast.success("New note created successfully");
+        
+        // Process the file to ensure it's handled like other files
+        processFile(newNoteFile.id).then(processResult => {
+          if (processResult.success) {
+            // Update processing status in parent component
+            if (onFileProcessingUpdate) {
+              onFileProcessingUpdate(newNoteFile.id, false);
+            }
+            
+            // Only show one toast notification
+            // debouncedToast.success("Note processing complete");
+          } else {
+            console.warn("Note processing warning:", processResult.error);
+            
+            // Update processing status in parent component
+            if (onFileProcessingUpdate) {
+              onFileProcessingUpdate(newNoteFile.id, false);
+            }
+            
+            debouncedToast.error(`Note processing issue: ${processResult.error || "Unknown error"}`);
+          }
+        }).catch(err => {
+          console.error("Error processing note:", err);
+          
+          // Update processing status in parent component
+          if (onFileProcessingUpdate) {
+            onFileProcessingUpdate(newNoteFile.id, false);
+          }
+          
+          debouncedToast.error("Error processing note");
+        });
+      } else {
+        // Show error toast
+        debouncedToast.error(result.error || "Failed to create new note");
+      }
+    } catch (error) {
+      console.error("Error creating new note:", error);
+      debouncedToast.error("Error creating new note");
+    } finally {
+      // Reset the flag when done
+      isCreatingDefaultNote.current = false;
+    }
+  }, [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
+
   // Create a default note if none exist
   const createDefaultNote = useCallback(async () => {
     if (!notebookId || !supabaseUserId) return null;
+    
+    // Check if we're already creating a default note
+    if (isCreatingDefaultNote.current) {
+      console.log("Default note creation already in progress, skipping duplicate request");
+      return null;
+    }
+    
+    // Set flag to indicate we're creating a note
+    isCreatingDefaultNote.current = true;
 
     try {
       // Create a unique default note name
@@ -306,27 +452,75 @@ export default function NotesPanel({
         type: "application/json",
       });
 
-      const supabase = await getSupabaseClient();
-      const result = await uploadFile(
+      // Use uploadAndProcessFile instead of uploadFile directly
+      const result = await uploadAndProcessFile(
         file,
-        true,
         notebookId,
         supabaseUserId,
-        supabase,
+        refreshSupabaseToken,
+        getSupabaseClient,
+        true // Set isNote to true
       );
 
       if (result.success && result.data) {
         const newNoteFile = result.data;
         setNotesFiles((prev) => [newNoteFile, ...prev]);
         setCurrentNoteFile(newNoteFile);
+        
+        // Notify parent component about the new file
+        if (onFileCreated) {
+          onFileCreated(newNoteFile);
+        }
+        
+        // Show success toast for creation
+        debouncedToast.success("Default note created successfully");
+        
+        // Process the file to ensure it's handled like other files
+        processFile(newNoteFile.id).then(processResult => {
+          if (processResult.success) {
+            // Update processing status in parent component
+            if (onFileProcessingUpdate) {
+              onFileProcessingUpdate(newNoteFile.id, false);
+            }
+            
+            // Only show one toast notification
+            // debouncedToast.success("Note processing complete");
+          } else {
+            console.warn("Note processing warning:", processResult.error);
+            
+            // Update processing status in parent component
+            if (onFileProcessingUpdate) {
+              onFileProcessingUpdate(newNoteFile.id, false);
+            }
+            
+            debouncedToast.error(`Note processing issue: ${processResult.error || "Unknown error"}`);
+          }
+        }).catch(err => {
+          console.error("Error processing default note:", err);
+          
+          // Update processing status in parent component
+          if (onFileProcessingUpdate) {
+            onFileProcessingUpdate(newNoteFile.id, false);
+          }
+          
+          debouncedToast.error("Error processing default note");
+        });
+        
         return validInitialContent;
+      } else {
+        // Show error toast
+        debouncedToast.error(result.error || "Failed to create default note");
       }
     } catch (error) {
       console.error("Error creating default note:", error);
+      debouncedToast.error("Error creating default note");
+    } finally {
+      // Reset the flag when done
+      isCreatingDefaultNote.current = false;
     }
 
     return null;
-  }, [notebookId, supabaseUserId, getSupabaseClient]);
+  }, [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
 
   // Load notes files when component mounts
   useEffect(() => {
@@ -368,20 +562,26 @@ export default function NotesPanel({
             const content = await loadFromStorage(mostRecentFile);
             setInitialContent(content || []);
           } else {
-            // Create default note if no valid files
+            // Create default note if no valid files and not already creating one
+            if (!isCreatingDefaultNote.current) {
+              const defaultContent = await createDefaultNote();
+              setInitialContent(defaultContent || []);
+            }
+          }
+        } else {
+          // Create default note if no files exist and not already creating one
+          if (!isCreatingDefaultNote.current) {
             const defaultContent = await createDefaultNote();
             setInitialContent(defaultContent || []);
           }
-        } else {
-          // Create default note if no files exist
-          const defaultContent = await createDefaultNote();
-          setInitialContent(defaultContent || []);
         }
       } catch (error) {
         console.error("Error fetching notes files:", error);
-        // Try to create a default note if fetching fails
-        const defaultContent = await createDefaultNote();
-        setInitialContent(defaultContent || []);
+        // Try to create a default note if fetching fails and not already creating one
+        if (!isCreatingDefaultNote.current) {
+          const defaultContent = await createDefaultNote();
+          setInitialContent(defaultContent || []);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -392,52 +592,8 @@ export default function NotesPanel({
     notebookId,
     supabaseUserId,
     getSupabaseClient,
-    createDefaultNote,
     loadFromStorage,
   ]);
-
-  // Create a new note
-  const createNewNote = useCallback(async () => {
-    if (!notebookId || !supabaseUserId) return;
-
-    try {
-      // Create a unique note name
-      const newNoteName = `Note_${new Date().toISOString().slice(0, 19).replace(/[T:.]/g, "-")}`;
-
-      // Create a blank editor to get a valid initial content
-      const tempEditor = BlockNoteEditor.create();
-      const validInitialContent = tempEditor.document;
-
-      // Create file
-      const contentString = JSON.stringify(validInitialContent);
-      const contentBlob = new Blob([contentString], {
-        type: "application/json",
-      });
-      const file = new File([contentBlob], `${newNoteName}.json`, {
-        type: "application/json",
-      });
-
-      const supabase = await getSupabaseClient();
-      const result = await uploadFile(
-        file,
-        true,
-        notebookId,
-        supabaseUserId,
-        supabase,
-      );
-
-      if (result.success && result.data) {
-        const newNoteFile = result.data;
-        setNotesFiles((prev) => [newNoteFile, ...prev]);
-        setCurrentNoteFile(newNoteFile);
-        setCurrentNoteName(newNoteName);
-        setInitialContent(validInitialContent);
-        setIsDropdownOpen(false);
-      }
-    } catch (error) {
-      console.error("Error creating new note:", error);
-    }
-  }, [notebookId, supabaseUserId, getSupabaseClient]);
 
   // Handle note selection from dropdown
   const selectNote = useCallback(

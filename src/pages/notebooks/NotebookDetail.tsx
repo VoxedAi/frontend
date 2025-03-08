@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSupabaseUser } from "../../contexts/UserContext";
 import { getNotebook } from "../../services/notebookService";
@@ -65,11 +65,27 @@ export default function NotebookDetailPage() {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
-
+  // Add state for coding question toggle
+  const [isCodingQuestion, setIsCodingQuestion] = useState(false);
+  const [isNoteQuestion, setIsNoteQuestion] = useState(false);
   // Notes panel state
   const [isNotesPanelExpanded, setIsNotesPanelExpanded] = useState(false);
   // Sandbox panel state
   const [isSandboxExpanded, setIsSandboxExpanded] = useState(false);
+
+  // Function to add a new file to the files state
+  const addNewFile = useCallback((newFile: ExtendedNotebookFile) => {
+    setFiles(prevFiles => [newFile, ...prevFiles]);
+  }, []);
+
+  // Function to update file processing status
+  const updateFileProcessingStatus = useCallback((fileId: string, isProcessing: boolean) => {
+    setFiles(prevFiles => 
+      prevFiles.map(f => 
+        f.id === fileId ? { ...f, isProcessing } : f
+      )
+    );
+  }, []);
 
   error;
   editedChatTitle;
@@ -455,7 +471,7 @@ export default function NotebookDetailPage() {
           }
 
           console.log("Calling deleteFile service function");
-          const result = await deleteFile(fileId, authClient, retryCount);
+          const result = await deleteFile(fileId, retryCount);
           console.log("deleteFile result:", result);
 
           // If token expired and we should retry with a new token
@@ -651,6 +667,7 @@ export default function NotebookDetailPage() {
             finalResponse = content;
           },
           supabaseUserId,
+          isCodingQuestion, // Pass the isCodingQuestion state
         );
 
         console.log("Streaming complete. Saving AI message to Supabase");
@@ -923,6 +940,10 @@ export default function NotebookDetailPage() {
                 handleSendMessage={handleSendMessage}
                 handleCreateSession={handleCreateSession}
                 messagesEndRef={messagesEndRef}
+                isCodingQuestion={isCodingQuestion}
+                setIsCodingQuestion={setIsCodingQuestion}
+                isNoteQuestion={isNoteQuestion}
+                setIsNoteQuestion={setIsNoteQuestion}
               />
             }
             rightPanel={
@@ -931,6 +952,8 @@ export default function NotebookDetailPage() {
                   notebookId={notebookId || ""}
                   isExpanded={isNotesPanelExpanded}
                   onToggleExpand={toggleNotesPanel}
+                  onFileCreated={addNewFile}
+                  onFileProcessingUpdate={updateFileProcessingStatus}
                 />
               ) : isSandboxExpanded ? (
                 <Sandbox />

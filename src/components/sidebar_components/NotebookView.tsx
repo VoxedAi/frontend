@@ -19,59 +19,12 @@ const NotebookView: React.FC<NotebookViewProps> = ({
   setCurrentChatSession,
   handleFileUpload,
   uploadingFiles,
+  checkedFiles,
+  toggleFileChecked,
 }) => {
   // State for checked files
-  const [checkedFiles, setCheckedFiles] = React.useState<Set<string>>(
-    new Set(),
-  );
 
-  // Effect to handle new files that aren't in the saved toggled state
-  React.useEffect(() => {
-    if (files.length > 0) {
-      setCheckedFiles((prevCheckedFiles) => {
-        // If we already have checked files, don't auto-check new ones
-        if (prevCheckedFiles.size > 0) {
-          return prevCheckedFiles;
-        }
 
-        // Otherwise, check all non-processing files by default (first-time behavior)
-        const newCheckedFiles = new Set<string>(prevCheckedFiles);
-        files.forEach((file) => {
-          if (!file.isProcessing && !newCheckedFiles.has(file.id)) {
-            newCheckedFiles.add(file.id);
-          }
-        });
-
-        // Only update if we've added new files
-        if (newCheckedFiles.size > prevCheckedFiles.size) {
-          return newCheckedFiles;
-        }
-
-        return prevCheckedFiles;
-      });
-    }
-  }, [files]);
-
-  // Toggle file checked state
-  const toggleFileChecked = (fileId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    // Find the file
-    const file = files.find((f) => f.id === fileId);
-
-    // Don't toggle processing files
-    if (file?.isProcessing) return;
-
-    setCheckedFiles((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(fileId)) {
-        newSet.delete(fileId);
-      } else {
-        newSet.add(fileId);
-      }
-      return newSet;
-    });
-  };
 
   return (
     <>

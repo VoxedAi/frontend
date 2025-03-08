@@ -25,7 +25,7 @@ export type CodeExecutionResponse = {
   has_execution_error?: boolean;
 };
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://voxed.aidanandrews.org/api/v1';
 
 /**
  * Executes code by sending it to a real API endpoint

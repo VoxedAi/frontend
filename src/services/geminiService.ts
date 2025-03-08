@@ -2,21 +2,24 @@
 const MODEL_NAME = "gemini-1.5-flash-8b";
 
 // API endpoint
-const API_URL = "http://localhost:8000/api/v1/query";
+const API_URL = "https://voxed.aidanandrews.org/api/v1/query";
 
 // Import types from types directory
 import { type Message, type MessageRole } from "../types/gemini";
+import { getToggledFiles } from "./userService";
 
 /**
  * Streams a chat response from the Gemini model
  * @param history Array of previous messages
  * @param onStreamUpdate Callback for streaming updates
  * @param userId User ID for tracking
+ * @param isCodingQuestion Whether this is a coding-related question
  */
 export async function streamChatWithGemini(
   history: Message[],
   onStreamUpdate: (content: string) => void,
   userId: string | null,
+  isCodingQuestion: boolean = true,
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
@@ -46,18 +49,37 @@ export async function streamChatWithGemini(
     // Extract the exact user query text
     const exactUserQuery = lastMessage.content;
     console.log("Exact user query:", exactUserQuery);
+    let toggledFilesIds: string[] | null = null;
+    let queryRequest: any = null;
 
-    // Prepare the query request with the exact user query
-    const queryRequest = {
-      query: exactUserQuery,
-      top_k: 5,
-      model_name: MODEL_NAME,
-      use_rag: true,
-      stream: true,
-      user_id: userId,
-      is_coding_question: true,
-    };
+    if (userId) {
+       toggledFilesIds = await getToggledFiles(userId);
+      console.log("Toggled files IDs:", toggledFilesIds);
+    }
 
+    if (toggledFilesIds) {
+      // Prepare the query request with the exact user query
+      queryRequest = {
+        query: exactUserQuery,
+        top_k: 5,
+        model_name: MODEL_NAME,
+        use_rag: true,
+        stream: true,
+        user_id: userId,
+        is_coding_question: isCodingQuestion,
+        filter: { "file_id": { "$in": toggledFilesIds } },
+      };
+    } else {
+      queryRequest = {
+        query: exactUserQuery,
+        top_k: 5,
+        model_name: MODEL_NAME,
+        use_rag: true,
+        stream: true,
+        user_id: userId,
+        is_coding_question: isCodingQuestion,
+      };
+    }
     console.log("Sending query request:", queryRequest);
 
     // Make the API request with fetch to support streaming

@@ -171,98 +171,56 @@ export async function getNotebookFiles(
 }
 
 /**
- * Deletes a file from Supabase storage and the notebook_files table
+ * Deletes a file using the consolidated API endpoint
  * @param fileId The ID of the file to delete
- * @param supabaseClient Optional authenticated Supabase client
- * @param retryCount Number of times to retry on auth errors
+ * @param retryCount Optional retry counter for handling auth issues
  */
 export async function deleteFile(
   fileId: string,
-  supabaseClient = supabase,
   retryCount: number = 0,
-): Promise<{ success: boolean; error?: any; shouldRetryWithNewToken?: boolean }> {
+): Promise<{ success: boolean; error?: any; shouldRetryWithNewToken?: boolean; message?: string }> {
   try {
-    // First get the file details to know what to delete from storage
-    const { data: fileData, error: fetchError } = await supabaseClient
-      .from("notebook_files")
-      .select("*")
-      .eq("id", fileId)
-      .single();
+    console.log(`[DEBUG] Deleting file ${fileId} using consolidated API endpoint`);
+    
+    const response = await fetch(
+      `https://voxed.aidanandrews.org/api/v1/files/${fileId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-    if (fetchError) {
-      console.error("Error fetching file data:", fetchError);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[DEBUG] API deletion failed with status ${response.status}:`, errorData);
       
-      // Handle JWT expired errors for database operations
-      if ((fetchError.code === 'PGRST301' || fetchError.message?.includes('JWT')) && retryCount < 2) {
-        console.log(`JWT expired during file fetch for deletion, attempt ${retryCount + 1}/3`);
+      // Handle authentication errors
+      if ((response.status === 401 || response.status === 403) && retryCount < 2) {
         return {
           success: false,
-          error: "Authentication token expired. Will retry with new token.",
+          error: "Authentication error. Will retry with new token.",
           shouldRetryWithNewToken: true
         };
       }
       
-      return { success: false, error: fetchError };
+      return { 
+        success: false, 
+        error: errorData.message || `API returned error status: ${response.status}`,
+        message: errorData.message || `API returned error status: ${response.status}`
+      };
     }
 
-    if (!fileData) {
-      console.error("No file data found");
-      return { success: false, error: "File not found" };
-    }
-
-    console.log("Retrieved file data for deletion:", fileData);
-
-    // Delete from storage first
-    const { error: storageError } = await supabaseClient.storage
-      .from("Vox")
-      .remove([fileData.file_path]);
-
-    if (storageError) {
-      console.error("Error deleting from storage:", storageError);
-      
-      // Handle JWT expired errors specifically
-      if (
-        (storageError as any).statusCode === '403' && 
-        storageError.message === 'jwt expired' && 
-        retryCount < 2
-      ) {
-        console.log(`JWT expired during storage deletion, attempt ${retryCount + 1}/3`);
-        return {
-          success: false,
-          error: "Authentication token expired. Will retry with new token.",
-          shouldRetryWithNewToken: true
-        };
-      }
-      
-      // If it's not an auth error, just return the error
-      return { success: false, error: storageError };
-    }
-
-    // Now delete from database
-    const { error: dbError } = await supabaseClient
-      .from("notebook_files")
-      .delete()
-      .eq("id", fileId);
-
-    if (dbError) {
-      console.error("Error deleting from database:", dbError);
-      
-      // Handle JWT expired errors for database operations
-      if ((dbError.code === 'PGRST301' || dbError.message?.includes('JWT')) && retryCount < 2) {
-        console.log(`JWT expired during database deletion, attempt ${retryCount + 1}/3`);
-        return {
-          success: false,
-          error: "Authentication token expired. Will retry with new token.",
-          shouldRetryWithNewToken: true
-        };
-      }
-      
-      return { success: false, error: dbError };
-    }
-
-    return { success: true };
+    const result = await response.json();
+    console.log("[DEBUG] File deletion API response:", result);
+    
+    return { 
+      success: true,
+      message: result.message
+    };
   } catch (error) {
-    console.error("Error in deleteFile:", error);
+    console.error("[DEBUG] Error in deleteFile:", error);
     
     // Check for authentication-related errors
     const errorStr = String(error);
@@ -281,44 +239,6 @@ export async function deleteFile(
 }
 
 /**
- * Call the API to delete embeddings for a file
- * @param fileId The Pinecone ID to delete
- */
-export async function deleteEmbeddings(fileId: string): Promise<void> {
-  try {
-    console.log("[DEBUG] Starting embeddings deletion for file:", fileId);
-
-    const response = await fetch(
-      "http://localhost:8000/api/v1/files/delete-by-pinecone-id",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          file_id: fileId,
-        }),
-      },
-    );
-
-    const result = await response.json();
-
-    if (result.success) {
-      console.log("[DEBUG] Successfully deleted embeddings:", result.message);
-    } else {
-      console.error(
-        "[DEBUG] Failed to delete embeddings:",
-        result.detail || result.message,
-      );
-    }
-  } catch (error) {
-    console.error("[DEBUG] Error calling delete embeddings API:", error);
-  } finally {
-    console.log("[DEBUG] Completed embeddings deletion process for:", fileId);
-  }
-}
-
-/**
  * Initiates processing of a file that has been uploaded to Supabase
  * @param fileId The ID of the file to process
  */
@@ -327,7 +247,7 @@ export async function processFile(
 ): Promise<{ success: boolean; message?: string; error?: any }> {
   try {
     const ingestResponse = await fetch(
-      "http://localhost:8000/api/v1/files/ingest",
+      "https://voxed.aidanandrews.org/api/v1/files/ingest",
       {
         method: "POST",
         headers: {
@@ -384,6 +304,7 @@ export async function processFile(
  * @param userId The ID of the user
  * @param refreshTokenFn Function to refresh auth token
  * @param getClientFn Function to get Supabase client
+ * @param isNote Whether the file is a note (default: false)
  * @returns Result of the operation
  */
 export async function uploadAndProcessFile(
@@ -392,6 +313,7 @@ export async function uploadAndProcessFile(
   userId: string,
   refreshTokenFn: () => Promise<void>,
   getClientFn: () => Promise<any>,
+  isNote: boolean = false,
 ): Promise<{
   success: boolean,
   data?: NotebookFile,
@@ -419,7 +341,7 @@ export async function uploadAndProcessFile(
       // Upload to Supabase
       const result = await uploadFile(
         file,
-        false,
+        isNote,
         notebookId,
         userId,
         authClient,
@@ -498,7 +420,7 @@ export async function uploadAndProcessFile(
  * Deletes a file with retry logic for token refreshing
  * @param fileId The ID of the file to delete
  * @param refreshTokenFn Function to refresh auth token
- * @param getClientFn Function to get Supabase client
+ * @param getClientFn Function to get authentication context (kept for backward compatibility)
  * @returns Result of the delete operation
  */
 export async function deleteFileWithRetry(
@@ -509,19 +431,13 @@ export async function deleteFileWithRetry(
   // Function to handle file deletion with retry logic
   const deleteWithRetryInternal = async (retryCount = 0): Promise<any> => {
     try {
-      // Get authenticated Supabase client - force refresh if retry
-      const authClient = await (retryCount > 0 
-        ? refreshTokenFn().then(() => getClientFn()) 
-        : getClientFn());
-
-      // If we couldn't get an authenticated client, show an error
-      if (!authClient) {
-        console.error("Authentication failed when trying to delete file");
-        throw new Error("Authentication error. Please try again or refresh the page.");
+      // If retrying, refresh the token first
+      if (retryCount > 0) {
+        await refreshTokenFn();
       }
 
       console.log("Calling deleteFile service function");
-      const result = await deleteFile(fileId, authClient, retryCount);
+      const result = await deleteFile(fileId, retryCount);
       console.log("deleteFile result:", result);
 
       // If token expired and we should retry with a new token

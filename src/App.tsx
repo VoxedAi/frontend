@@ -43,7 +43,6 @@ export default function App() {
       </SignedIn>
       
       <Router>
-        <DevelopmentBanner />
         <Header />
         <Toaster
           position="top-center"
@@ -90,9 +89,11 @@ export default function App() {
             element={
               <>
                 <SignedIn>
+                  <DevelopmentBanner />
                   <HomePage />
                 </SignedIn>
                 <SignedOut>
+                  <DevelopmentBanner />
                   <HomePage />
                 </SignedOut>
               </>
@@ -132,6 +133,7 @@ export default function App() {
           <Route path="/notebooks" element={
             <SignedIn>
               <Suspense fallback={<LoadingSpinner size="large" />}>
+                <DevelopmentBanner />
                 <NotebooksPage />
               </Suspense>
             </SignedIn>

@@ -226,6 +226,15 @@
     }
   }
 
+  .bg-button-primary {
+    background-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
+    color: var(--color-primary);
+  }
+
+  .hover\:bg-button-primary:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
   .focus\:bg-card:focus {
     @media (prefers-color-scheme: dark) {
       background-color: var(--color-card-dark);
@@ -296,18 +305,18 @@
 
   .hover\:bg-primary:hover {
     @media (prefers-color-scheme: dark) {
-      background-color: var(--color-primary-hover);
+      background-color: var(--color-primary);
     }
     @media (prefers-color-scheme: light) {
-      background-color: var(--color-primary-hover);
+      background-color: var(--color-primary);
     }
 
     html.force-light & {
-      background-color: var(--color-primary-hover);
+      background-color: var(--color-primary);
     }
 
     html.force-dark & {
-      background-color: var(--color-primary-hover);
+      background-color: var(--color-primary);
     }
   }
 

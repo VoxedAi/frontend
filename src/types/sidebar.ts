@@ -169,6 +169,11 @@ export const NotebookViewPropsSchema = z.object({
     .returns(z.promise(z.void()))
     .optional(),
   uploadingFiles: z.custom<Set<string>>(),
+  checkedFiles: z.custom<Set<string>>(),
+  toggleFileChecked: z
+    .function()
+    .args(z.string(), z.custom<React.MouseEvent>())
+    .returns(z.void()),
 });
 
 // Type derived from the schema

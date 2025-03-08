@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import React from "react";
 // ChatMessage schema with Zod
 export const ChatMessageSchema = z.object({
   id: z.string().uuid(),
@@ -22,6 +22,36 @@ export const ChatSessionSchema = z.object({
   title: z.string(),
   created_at: z.string().datetime(),
 });
+
+export interface ChatBarProps {
+  handleSendMessage: (e: React.FormEvent) => void;
+  inputMessage: string;
+  setInputMessage: (message: string) => void;
+  isStreaming: boolean;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  autoResizeTextarea: () => void;
+  isCodingQuestion: boolean;
+  setIsCodingQuestion: (value: boolean) => void;
+  isNoteQuestion: boolean;
+  setIsNoteQuestion: (value: boolean) => void;
+}
+
+export interface ChatInterfaceProps {
+  currentChatSession: ChatSession | null;
+  messages: ChatMessage[];
+  isLoadingMessages: boolean;
+  isStreaming: boolean;
+  streamingContent: string;
+  inputMessage: string;
+  setInputMessage: (message: string) => void;
+  handleSendMessage: (e: React.FormEvent) => void;
+  handleCreateSession: () => void;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+  isCodingQuestion: boolean;
+  setIsCodingQuestion: (value: boolean) => void;
+  isNoteQuestion: boolean;
+  setIsNoteQuestion: (value: boolean) => void;
+}
 
 // Type derived from the schema
 export type ChatSession = z.infer<typeof ChatSessionSchema>;

@@ -132,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div
         className={`h-full flex flex-col bg-adaptive dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
           isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-64 opacity-100"
-        }`}
+        } ${isMobile ? "z-30 relative" : ""}`}
       >
         {/* Sidebar Header */}
         <SidebarHeader

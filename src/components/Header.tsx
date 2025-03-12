@@ -6,7 +6,7 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const { isSignedIn } = useAuth();
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
+    <div className="fixed top-4 right-4 z-15 flex items-center gap-4">
       <button
         onClick={toggleTheme}
         className="text-[color-mix(in_oklch,currentColor_80%,var(--color-primary))] hover:text-[var(--color-primary)] transition-colors relative group cursor-pointer"

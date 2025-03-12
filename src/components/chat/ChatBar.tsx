@@ -14,7 +14,7 @@ export default function ChatBar({
   setIsNoteQuestion,
 }: ChatBarProps) {
   return (
-    <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 z-20">
+    <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 z-15">
         <div className="max-w-3xl mx-auto">
         <form onSubmit={handleSendMessage} className="relative">
             <div className="backdrop-blur-md rounded-2xl overflow-hidden shadow-xl border border-adaptive ring-adaptive focus-within:ring-1 before:absolute before:inset-0 before:rounded-2xl before:shadow-[0_0_15px_rgba(0,0,0,0.05)] dark:before:shadow-[0_0_15px_rgba(255,255,255,0.03)]">
@@ -161,7 +161,7 @@ export default function ChatBar({
                         </g>
                     </svg>
                     <div className="whitespace-nowrap pl-1 pr-1 [display:--force-hide-label]">
-                        All Notes
+                        Notes
                     </div>
                     </button>
                 </Tooltip>

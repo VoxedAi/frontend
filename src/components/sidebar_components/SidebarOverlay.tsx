@@ -16,8 +16,8 @@ const SidebarOverlay: React.FC<SidebarOverlayProps> = ({
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-overlay backdrop-blur-sm z-30 transition-all duration-300 ease-in-out"
+    <div 
+      className="fixed top-0 right-0 bottom-0 left-64 bg-black/30 z-20 transition-all duration-300 ease-in-out"
       onClick={onToggleCollapse}
       aria-hidden="true"
     />

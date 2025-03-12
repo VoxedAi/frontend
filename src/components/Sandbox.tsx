@@ -134,7 +134,7 @@ export default function Sandbox() {
   const [layoutMode, setLayoutMode] = useState<SandpackLayoutMode>("preview");
   const [codeExecutionResult, setCodeExecutionResult] = useState<CodeExecutionResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [consoleLayout, setConsoleLayout] = useState<ConsoleLayoutMode>("side-by-side");
+  const [consoleLayout, setConsoleLayout] = useState<ConsoleLayoutMode>("collapsed");
 
   const languages = [
     {
@@ -156,10 +156,22 @@ export default function Sandbox() {
 
   // Console layout toggle handler
   const toggleConsoleLayout = () => {
-    const layouts: ConsoleLayoutMode[] = ["side-by-side", "below", "collapsed"];
+    const layouts: ConsoleLayoutMode[] = ["below", "side-by-side", "collapsed"];
     const currentIndex = layouts.indexOf(consoleLayout);
     const nextIndex = (currentIndex + 1) % layouts.length;
     setConsoleLayout(layouts[nextIndex]);
+  };
+
+  const toggleConsoleLayoutRunButton = () => {
+    switch (consoleLayout) {
+      case "below":
+        break;
+      case "side-by-side":
+        break;
+      case "collapsed":
+        toggleConsoleLayout();
+        break;
+    }
   };
 
   // Function to get icon based on current layout
@@ -177,10 +189,10 @@ export default function Sandbox() {
   // Function to get label text for the layout toggle button
   const getConsoleLayoutLabel = () => {
     switch (consoleLayout) {
-      case "side-by-side":
-        return "Side";
       case "below":
         return "Below";
+      case "side-by-side":
+        return "Side";
       case "collapsed":
         return "Hidden";
     }
@@ -291,12 +303,14 @@ export default function Sandbox() {
               </button>
             )}
           </div>
-          <RunButton 
-            setCodeExecutionResult={setCodeExecutionResult} 
-            setLayoutMode={setLayoutMode}
-            isRunning={isRunning}
-            setIsRunning={setIsRunning}
-          />
+          <div onClick={() => toggleConsoleLayoutRunButton()}>
+            <RunButton 
+              setCodeExecutionResult={setCodeExecutionResult} 
+              setLayoutMode={setLayoutMode}
+              isRunning={isRunning}
+              setIsRunning={setIsRunning}
+            />
+          </div>
         </div>
         
         <SandpackLayout className={`transition-all duration-300 ease-in-out ${consoleLayout === "below" ? "flex-col" : ""}`}>
@@ -452,7 +466,7 @@ function RunButton({
     <button
       onClick={runCode}
       disabled={isRunning}
-      className="px-4 py-2 bg-primary text-primary rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+      className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
     >
       {isRunning ? (
         <>

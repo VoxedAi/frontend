@@ -13,7 +13,7 @@ export default function ResizablePanel({
   leftPanel,
   rightPanel,
   isRightPanelExpanded,
-  defaultRightPanelWidth = 40,
+  defaultRightPanelWidth = 75,
   minRightPanelWidth = 20,
   maxRightPanelWidth = 80,
 }: ResizablePanelProps) {
@@ -35,16 +35,31 @@ export default function ResizablePanel({
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const resizeBarRef = useRef<HTMLDivElement>(null);
-
-  // Check if we're on mobile and set up resize listener
+  
+  // Force check on initial render
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    // Initial check
     checkIfMobile();
+  }, []);
+
+  // Function to check mobile state - defined outside useEffect to be reusable
+  const checkIfMobile = () => {
+    const newIsMobile = window.innerWidth < 1080;
     
+    if (isMobile !== newIsMobile) {
+      setIsMobile(newIsMobile);
+      
+      // When transitioning from mobile to desktop
+      if (isMobile && !newIsMobile) {
+        // Reset to desktop view settings
+        if (isRightPanelExpanded) {
+          setRightPanelWidth(rightPanelWidthBeforeCollapse.current);
+        }
+      }
+    }
+  };
+
+  // Set up resize listener
+  useEffect(() => {
     // Set up listener for window resize
     window.addEventListener('resize', checkIfMobile);
     
@@ -52,7 +67,7 @@ export default function ResizablePanel({
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
-  }, []);
+  }, [isMobile, isRightPanelExpanded]);
 
   // Handle panel expansion/collapse
   useEffect(() => {
@@ -65,7 +80,9 @@ export default function ResizablePanel({
       }
     } else {
       // Save current width before collapsing
-      rightPanelWidthBeforeCollapse.current = rightPanelWidth;
+      if (rightPanelWidth > 0) {
+        rightPanelWidthBeforeCollapse.current = rightPanelWidth;
+      }
       setRightPanelWidth(0);
       // On mobile, switch to left panel when right panel is collapsed
       if (isMobile) {
@@ -183,49 +200,22 @@ export default function ResizablePanel({
     };
   }, [isDragging, minRightPanelWidth, maxRightPanelWidth]);
 
-  // Handle mobile panel switching
-  const toggleMobilePanel = () => {
-    if (mobileActivePanel === 'left' && isRightPanelExpanded) {
-      setMobileActivePanel('right');
-    } else if (mobileActivePanel === 'right') {
-      setMobileActivePanel('left');
-    }
-  };
-
   return (
     <div ref={containerRef} className="flex h-full w-full relative">
-      {/* Mobile panel switcher - only visible on small screens when right panel is expanded */}
-      {isRightPanelExpanded && (
-        <div className="md:hidden fixed bottom-4 right-4 z-20">
-          <button 
-            onClick={toggleMobilePanel}
-            className="bg-primary text-white p-2 rounded-full shadow-lg"
-            aria-label={`Switch to ${mobileActivePanel === 'left' ? 'right' : 'left'} panel`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 3h5v5"></path>
-              <path d="M8 21H3v-5"></path>
-              <path d="M21 3l-7 7"></path>
-              <path d="M3 21l7-7"></path>
-            </svg>
-          </button>
-        </div>
-      )}
-      
       {/* Left panel */}
       <div 
         ref={leftPanelRef}
-        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} md:block ${mobileActivePanel === 'right' ? 'hidden' : 'block'}`}
+        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} ${isMobile ? '' : 'block'} ${isMobile && mobileActivePanel === 'right' ? 'hidden' : 'block'}`}
         style={{ width: isMobile ? '100%' : `${leftPanelWidth}%` }}
       >
         {leftPanel}
       </div>
       
       {/* Resize handle - Explicitly sized with visible area - Only visible on desktop */}
-      {isRightPanelExpanded && (
+      {isRightPanelExpanded && !isMobile && (
         <div 
           ref={resizeBarRef}
-          className={`absolute h-full z-10 cursor-col-resize flex items-center justify-center select-none ${isDragging ? '' : 'transition-[left] duration-300 ease-out'} hidden md:flex`}
+          className={`absolute h-full z-10 cursor-col-resize flex items-center justify-center select-none ${isDragging ? '' : 'transition-[left] duration-300 ease-out'} ${isMobile ? 'hidden' : 'flex'}`}
           style={{
             left: `${leftPanelWidth}%`,
             width: '12px',  // Wider hit area for easier interaction
@@ -248,11 +238,11 @@ export default function ResizablePanel({
       {/* Right panel */}
       <div 
         ref={rightPanelRef}
-        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} md:block ${mobileActivePanel === 'left' ? 'hidden' : 'block'}`}
+        className={`overflow-auto h-full ${isDragging ? '' : 'transition-[width] duration-300 ease-out'} ${isMobile ? '' : 'block'} ${isMobile && mobileActivePanel === 'left' ? 'hidden' : 'block'}`}
         style={{ 
           width: isMobile 
             ? '100%' 
-            : (isRightPanelExpanded ? `${effectiveRightPanelWidth}%` : 0)
+            : (isRightPanelExpanded ? `${effectiveRightPanelWidth}%` : 0) 
         }}
       >
         {rightPanel}

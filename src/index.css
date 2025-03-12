@@ -632,6 +632,4 @@
 }
 
 /* Import notes styling for BlockNote editor */
-@import "./styles/notes.css";
 @import "./styles/sandbox.css";
-@import "./styles/landing.css";

@@ -16,6 +16,7 @@ import { uploadAndProcessFile, processFile } from "../../services/fileUpload";
 import { debounce } from "../../utils/helpers";
 import type { NotebookFile } from "../../types/notebook";
 import toast from "react-hot-toast";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface NotesPanelProps {
   notebookId: string;
@@ -137,6 +138,7 @@ export default function NotesPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   // Add a ref to track if a default note is being created
   const isCreatingDefaultNote = useRef(false);
+  const { theme } = useTheme();
 
   // Handle clicks outside dropdown to close it
   useEffect(() => {
@@ -694,11 +696,11 @@ export default function NotesPanel({
   return (
     <div
       ref={panelRef}
-      className={`notes-panel ${isExpanded ? "expanded" : "collapsed"} relative pt-12 pl-10 flex flex-col h-full`}
+      className={`notes-panel ${isExpanded ? "expanded" : "collapsed"} relative pt-16 pl-10 flex flex-col h-full`}
     >
       {/* Notes title and dropdown */}
       <div
-        className="absolute top-0 left-0 right-0 p-2 flex items-center justify-between z-10 max-w-3/4"
+        className="top-0 left-0 right-0 p-2 flex items-center justify-between z-10 max-w-3/4"
         ref={dropdownRef}
       >
         <div className="relative w-full">
@@ -878,7 +880,7 @@ export default function NotesPanel({
             <BlockNoteView
               editor={editor}
               onChange={handleEditorChange}
-              data-voxai-theme
+              theme={theme}
             />
           )}
         </EditorErrorBoundary>

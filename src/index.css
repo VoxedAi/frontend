@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+@theme {
+  /* Colors */
+  --color-primary: oklch(
+    0.55 0.18 250
+  ); /* A balanced blue that works well in both light/dark modes */
+  --color-primary-hover: oklch(
+    0.809 0.105 251.813
+  ); /* Primary color for light mode */
+  --color-secondary: oklch(
+    0.45 0.15 250
+  ); /* Slightly darker variant for hover states */
+  --color-background-light: hsla(0, 0%, 100%, 0.95); /* Pure white */
+  --color-background-dark: rgba(
+    33,
+    33,
+    33,
+    0.9
+  ); /* Near black for better eye comfort */
+  --color-text-light: oklch(0.2 0 0); /* Dark gray for light mode text */
+  --color-text-dark: oklch(
+    0.95 0 0
+  ); /* Off-white for dark mode text - equivalent to gray-50/100 */
+
+  /* Typography */
+  --font-sans:
+    ui-rounded, -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Text",
+    system-ui, sans-serif;
+
+  /* Spacing */
+  --spacing: 0.25rem;
+
+  /* Animation */
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html.color-scheme-adaptive {
+    @media (prefers-color-scheme: dark) {
+      color-scheme: dark;
+      --color-background: var(--color-background-dark);
+      --color-text: var(--color-text-dark);
+      --color-surface: var(--color-surface-dark);
+      --color-border: var(--color-border-dark);
+      --color-card: var(--color-card-dark);
+      --color-input: var(--color-input-dark);
+      --color-hover: var(--color-hover-dark);
+      --color-active: var(--color-active-dark);
+      --color-overlay: var(--color-overlay-dark);
+    }
+
+    @media (prefers-color-scheme: light) {
+      color-scheme: light;
+      --color-background: var(--color-background-light);
+      --color-text: var(--color-text-light);
+      --color-surface: var(--color-surface-light);
+      --color-border: var(--color-border-light);
+      --color-card: var(--color-card-light);
+      --color-input: var(--color-input-light);
+      --color-hover: var(--color-hover-light);
+      --color-active: var(--color-active-light);
+      --color-overlay: var(--color-overlay-light);
+    }
+
+    transition: var(--transition-theme);
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+
+  /* Force light theme regardless of system preference */
+  html.force-light {
+    color-scheme: light;
+    --color-background: var(--color-background-light);
+    --color-text: var(--color-text-light);
+    --color-surface: var(--color-surface-light);
+    --color-border: var(--color-border-light);
+    --color-card: var(--color-card-light);
+    --color-input: var(--color-input-light);
+    --color-hover: var(--color-hover-light);
+    --color-active: var(--color-active-light);
+    --color-overlay: var(--color-overlay-light);
+
+    transition: var(--transition-theme);
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+
+  /* Force dark theme regardless of system preference */
+  html.force-dark {
+    color-scheme: dark;
+    --color-background: var(--color-background-dark);
+    --color-text: var(--color-text-dark);
+    --color-surface: var(--color-surface-dark);
+    --color-border: var(--color-border-dark);
+    --color-card: var(--color-card-dark);
+    --color-input: var(--color-input-dark);
+    --color-hover: var(--color-hover-dark);
+    --color-active: var(--color-active-dark);
+    --color-overlay: var(--color-overlay-dark);
+
+    transition: var(--transition-theme);
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+
+  /* Starting style for smooth theme transitions */
+  @starting-style {
+    html.color-scheme-adaptive,
+    html.force-light,
+    html.force-dark {
+      background-color: initial;
+      color: initial;
+    }
+  }
+
+  ::selection {
+    background-color: color-mix(
+      in oklch,
+      var(--color-primary) 25%,
+      transparent
+    );
+  }
+
+  /* Improve image visibility in dark mode */
+  img {
+    @media (prefers-color-scheme: dark) {
+      filter: brightness(0.8) contrast(1.2);
+    }
+  }
+
+  /* Make sure dark mode images look good with forced themes too */
+  html.force-dark img {
+    filter: brightness(0.8) contrast(1.2);
+  }
+}
+
+@layer utilities {
+  .bg-background {
+    @media (prefers-color-scheme: dark) {
+      background-color: var(--color-background-dark);
+    }
+    @media (prefers-color-scheme: light) {
+      background-color: var(--color-background-light);
+    }
+
+    html.force-light & {
+      background-color: var(--color-background-light);
+    }
+
+    html.force-dark & {
+      background-color: var(--color-background-dark);
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/clerk-react";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "@clerk/clerk-react";
 
 export default function Header() {

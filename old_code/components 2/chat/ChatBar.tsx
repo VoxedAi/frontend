@@ -1,4 +1,4 @@
-import { Tooltip } from "../Tooltip";
+import { Tooltip } from "../../../src/components/Tooltip";
 import { ChatBarProps } from "../../types/chat";
 
 export default function ChatBar({

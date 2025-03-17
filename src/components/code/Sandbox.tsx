@@ -1,14 +1,14 @@
 import { SandpackProvider, SandpackLayout, SandpackCodeEditor, SandpackPreview, SandpackConsole, UnstyledOpenInCodeSandboxButton, useSandpack } from "@codesandbox/sandpack-react";
 import { useState, useEffect } from "react";
-import languageFiles from "../utils/codeExamples";
+import languageFiles from "../../utils/codeExamples";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { githubLight, atomDark } from "@codesandbox/sandpack-themes";
 import { FaColumns, FaChevronDown, FaEyeSlash } from "react-icons/fa";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 import { python } from "@codemirror/lang-python";
 
-import { executeCode, executeCodeLocally, CodeExecutionResponse } from "../services/codeRunnerService";
+import { executeCode, executeCodeLocally, CodeExecutionResponse } from "../../services/codeRunnerService";
 
 type SandpackLayoutMode = "preview" | "tests" | "console";
 type ConsoleLayoutMode = "side-by-side" | "below" | "collapsed";

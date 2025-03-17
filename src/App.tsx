@@ -12,20 +12,20 @@ import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 // Marketing Pages
-import SignInUp from "./new_pages/auth/SignIn-Up";
-import Header from "./components/Header";
+import SignInUp from "./pages/auth/SignIn-Up";
+import Header from "./components/common/Header";
 
 // Contexts / Light Weight Files
 import { UserProvider } from "./contexts/UserContext";
 import { useTheme } from "./contexts/ThemeContext";
-import TokenRefresher from "./components/TokenRefresher";
-import LoadingSpinner from "./components/LoadingSpinner";
+import TokenRefresher from "./components/common/TokenRefresher";
+import LoadingSpinner from "./components/common/LoadingSpinner";
 import DevelopmentBanner from "./components/DevelopmentBanner";
 
 // Web App - Lazy loaded components
-const Sandbox = lazy(() => import("./components/Sandbox"));
-const SpaceUI = lazy(() => import("./new_pages/Space"));
-const WorkspacesUI = lazy(() => import("./new_pages/Workspaces"));
+const Sandbox = lazy(() => import("./components/code/Sandbox"));
+const SpaceUI = lazy(() => import("./pages/Space"));
+const WorkspacesUI = lazy(() => import("./pages/Workspaces"));
 
 export default function App() {
   // Get current theme from our context

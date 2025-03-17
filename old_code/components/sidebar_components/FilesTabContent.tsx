@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { ExtendedSpaceFile } from "./SidebarTypes";
 import FileListItem from "./FileListItem";
 import { getFileSize } from "./SidebarUtils";
-import { Tooltip } from "../Tooltip";
+import { Tooltip } from "../../../src/components/common/Tooltip";
 
 interface FilesTabContentProps {
   files: ExtendedSpaceFile[];

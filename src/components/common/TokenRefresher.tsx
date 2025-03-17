@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useSupabaseUser } from '../contexts/UserContext';
+import { useSupabaseUser } from '../../contexts/UserContext';
 
 /**
  * TokenRefresher component

@@ -19,11 +19,11 @@ import {
   Sun,
   Loader
 } from 'lucide-react';
-import SimplifiedChatInterface from '../new_components/Chat';
-import Note from '../new_components/Note';
-import ChatInterface from '../new_components/VoxPilot';
+import SimplifiedChatInterface from '../components/Chat';
+import Note from '../components/Note';
+import ChatInterface from '../components/VoxPilot';
 import { useNavigate, useParams } from 'react-router-dom';
-import Sandbox from '../new_components/Code';
+import Sandbox from '../components/Code';
 import { useSupabaseUser } from '../contexts/UserContext';
 import { getSpaceFiles, deleteFile, uploadAndProcessFile, processFile } from '../services/fileUpload';
 import { getSpace } from '../services/spaceService';
@@ -31,7 +31,7 @@ import { useMobile } from '../contexts/MobileContext';
 import type { SpaceFile } from '../types/space';
 import { supabase } from '../services/supabase';
 import toast from 'react-hot-toast';
-import Sidebar from '../new_components/Sidebar';
+import Sidebar from '../components/Sidebar';
 import { useLayoutState } from '../hooks';
 
 // Extended file type with visibility state

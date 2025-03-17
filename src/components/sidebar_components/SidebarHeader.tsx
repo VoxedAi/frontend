@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface SidebarHeaderProps {
-  mode: "folders" | "notebook";
+  mode: "workspaces" | "space";
   isCollapsed: boolean;
   isMobile: boolean;
   onToggleCollapse: () => void;
-  notebookName?: string;
+  spaceName?: string;
   toggleNotesPanel?: () => void;
   isNotesPanelExpanded?: boolean;
   toggleSandbox?: () => void;
@@ -19,7 +19,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   isCollapsed,
   isMobile,
   onToggleCollapse,
-  notebookName = "",
+  spaceName = "",
   toggleNotesPanel,
   isNotesPanelExpanded,
   toggleSandbox,
@@ -28,25 +28,25 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   const navigate = useNavigate();
   const { theme } = useTheme();
   // Determine whether to show the notes toggle button
-  const showNotesToggle = mode === "notebook" && toggleNotesPanel;
+  const showNotesToggle = mode === "space" && toggleNotesPanel;
   
   // Determine whether to show the sandbox toggle button
-  const showSandboxToggle = mode === "notebook" && toggleSandbox;
+  const showSandboxToggle = mode === "space" && toggleSandbox;
 
   return (
     <div className="p-4 flex items-center justify-between transition-colors duration-200">
       {(!isCollapsed || isMobile) && (
         <div className="flex items-center">
-          {mode === "folders" && (
+          {mode === "workspaces" && (
             <a href="https://voxed.ai" className="mr-2 p-1 rounded-md hover:bg-hover cursor-pointer transition-all duration-200 w-8">
               <img src={theme === "dark" ? "/voxed-icon-dark.png" : "/voxed-icon.png"} alt="Voxed" className="w-full" />
             </a>
           )}
-          {mode === "notebook" && (
+          {mode === "space" && (
             <button
-              onClick={() => navigate("/notebooks")}
+              onClick={() => navigate("/spaces")}
               className="mr-2 p-1 rounded-md hover:bg-hover cursor-pointer transition-all duration-200"
-              aria-label="Back to notebooks"
+              aria-label="Back to spaces"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -65,13 +65,13 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
             </button>
           )}
           <h2 className="font-medium text-adaptive">
-            {mode === "notebook" ? notebookName : "Folders"}
+            {mode === "space" ? spaceName : "Workspaces"}
           </h2>
         </div>
       )}
       
       <div className="flex items-center">
-        {/* Notes Toggle Button - Only show in notebook mode */}
+        {/* Notes Toggle Button - Only show in space mode */}
         {showNotesToggle && (
           <button
             onClick={toggleNotesPanel}
@@ -124,7 +124,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           </button>
         )}
         
-        {/* Sandbox Toggle Button - Only show in notebook mode */}
+        {/* Sandbox Toggle Button - Only show in space mode */}
         {showSandboxToggle && (
           <button
             onClick={toggleSandbox}

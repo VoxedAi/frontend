@@ -1,5 +1,5 @@
 import React from "react";
-import type { Folder } from "../../types/notebook";
+import type { Workspace } from "../../types/space";
 
 interface CollapsedSidebarProps {
   isMobile: boolean;
@@ -7,7 +7,7 @@ interface CollapsedSidebarProps {
   onToggleCollapse: () => void;
   isHoveringCollapsed: boolean;
   setIsHoveringCollapsed: (value: boolean) => void;
-  mode: "folders" | "notebook";
+  mode: "workspaces" | "space";
   toggleNotesPanel?: () => void;
   isNotesPanelExpanded?: boolean;
   toggleSandbox?: () => void;
@@ -16,8 +16,8 @@ interface CollapsedSidebarProps {
   setActiveTab?: (tab: "files" | "chats") => void;
   handleCreateSession?: () => void;
   handleFileUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSelectFolder: (folderId: string | null) => void;
-  allFoldersList: Folder[];
+  handleSelectWorkspace: (workspaceId: string | null) => void;
+  allWorkspacesList: Workspace[];
 }
 
 const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
@@ -36,11 +36,11 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
     return null;
   }
 
-  // Only show notes toggle button in notebook mode
-  const showNotesToggle = mode === "notebook" && toggleNotesPanel;
+  // Only show notes toggle button in space mode
+  const showNotesToggle = mode === "space" && toggleNotesPanel;
 
   // Determine whether to show the sandbox toggle button
-  const showSandboxToggle = mode === "notebook" && toggleSandbox;
+  const showSandboxToggle = mode === "space" && toggleSandbox;
 
   // Position and styling classes based on mobile or desktop
   const containerClasses = isMobile

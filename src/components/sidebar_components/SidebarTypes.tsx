@@ -1,20 +1,20 @@
 import type {
-  ExtendedNotebookFile,
+  ExtendedSpaceFile,
   SidebarProps,
-  FolderItemProps,
+  WorkspaceItemProps,
   FileListItemProps,
   ChatSessionItemProps,
-  FolderViewProps,
-  NotebookViewProps,
+  WorkspaceViewProps,
+  SpaceViewProps,
 } from "../../types/sidebar";
 
 // Re-export all the types for use in other components
 export type {
-  ExtendedNotebookFile,
+  ExtendedSpaceFile,
   SidebarProps,
-  FolderItemProps,
+  WorkspaceItemProps,
   FileListItemProps,
   ChatSessionItemProps,
-  FolderViewProps,
-  NotebookViewProps,
+  WorkspaceViewProps,
+  SpaceViewProps,
 };

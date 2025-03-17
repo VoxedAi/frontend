@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { SidebarProps } from "./sidebar_components/SidebarTypes";
 import SidebarHeader from "./sidebar_components/SidebarHeader";
-import FolderView from "./sidebar_components/FolderView";
-import NotebookView from "./sidebar_components/NotebookView";
+import WorkspaceView from "./sidebar_components/WorkspaceView";
+import SpaceView from "./sidebar_components/SpaceView";
 import CollapsedSidebar from "./sidebar_components/CollapsedSidebar";
 import SidebarOverlay from "./sidebar_components/SidebarOverlay";
 import { useMobile } from "../contexts/MobileContext";
@@ -12,17 +12,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   userId,
   isCollapsed,
   onToggleCollapse,
-  selectedFolderId,
-  onSelectFolder,
-  onFoldersUpdated,
+  selectedWorkspaceId,
+  onSelectWorkspace,
+  onWorkspacesUpdated,
   // Notes panel toggle props
   toggleNotesPanel,
   isNotesPanelExpanded,
   // Sandbox toggle props
   toggleSandbox,
   isSandboxExpanded,
-  // Notebook props with defaults
-  mode = "folders",
+  // Space props with defaults
+  mode = "workspaces",
   activeTab = "files",
   setActiveTab,
   files = [],
@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   confirmDeleteSession,
   setCurrentChatSession,
   handleFileUpload,
-  notebookName = "",
+  spaceName = "",
   uploadingFiles = new Set(),
   // Note question mode
   isNoteQuestion = false,
@@ -119,8 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           setActiveTab={setActiveTab}
           handleCreateSession={handleCreateSession}
           handleFileUpload={handleFileUpload}
-          handleSelectFolder={onSelectFolder}
-          allFoldersList={[]}
+          handleSelectWorkspace={onSelectWorkspace}
+          allWorkspacesList={[]}
           toggleNotesPanel={toggleNotesPanel}
           isNotesPanelExpanded={isNotesPanelExpanded}
           toggleSandbox={toggleSandbox}
@@ -140,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           isCollapsed={isCollapsed}
           isMobile={isMobile}
           onToggleCollapse={onToggleCollapse}
-          notebookName={notebookName}
+          spaceName={spaceName}
           toggleNotesPanel={toggleNotesPanel}
           isNotesPanelExpanded={isNotesPanelExpanded}
           toggleSandbox={toggleSandbox}
@@ -149,23 +149,23 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto">
-          {mode === "folders" ? (
-            // Folder Navigation Content
-            <FolderView
+          {mode === "workspaces" ? (
+            // Workspace Navigation Content
+            <WorkspaceView
               userId={userId}
               isMobile={isMobile}
               isCollapsed={isCollapsed}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={onSelectFolder}
-              onFoldersUpdated={onFoldersUpdated}
+              selectedWorkspaceId={selectedWorkspaceId}
+              onSelectWorkspace={onSelectWorkspace}
+              onWorkspacesUpdated={onWorkspacesUpdated}
             />
           ) : (
-            // Notebook Mode Content
-            <NotebookView
+            // Space Mode Content
+            <SpaceView
               userId={userId}
               isMobile={isMobile}
               isCollapsed={isCollapsed}
-              notebookName={notebookName}
+              spaceName={spaceName}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               files={files}

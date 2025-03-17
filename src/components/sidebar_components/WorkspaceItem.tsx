@@ -1,23 +1,23 @@
 import React from "react";
-import { FolderItemProps } from "./SidebarTypes";
+import { WorkspaceItemProps } from "./SidebarTypes";
 
-const FolderItem: React.FC<FolderItemProps> = ({
-  folder,
+const WorkspaceItem: React.FC<WorkspaceItemProps> = ({
+  workspace,
   depth = 0,
   isCollapsed,
   isMobile,
   isSelected,
-  expandedFolders,
-  handleToggleFolder,
-  handleSelectFolder,
-  handleAddSubfolder,
+  expandedWorkspaces,
+  handleToggleWorkspace,
+  handleSelectWorkspace,
+  handleAddSubworkspace,
   handleDeleteClick,
 }) => {
-  const isExpanded = expandedFolders.has(folder.id);
-  const hasChildren = folder.children && folder.children.length > 0;
+  const isExpanded = expandedWorkspaces.has(workspace.id);
+  const hasChildren = workspace.children && workspace.children.length > 0;
 
   return (
-    <div key={folder.id} className="select-none">
+    <div key={workspace.id} className="select-none">
       <div
         className={`flex items-center py-2 px-2 my-1 rounded-md cursor-pointer group transition-all duration-200 ${
           isSelected
@@ -25,15 +25,15 @@ const FolderItem: React.FC<FolderItemProps> = ({
             : "hover:bg-hover text-adaptive"
         } ${isMobile ? "py-2.5" : "py-1.5"}`}
         style={{ paddingLeft: `${(depth + 1) * 12}px` }}
-        onClick={() => handleSelectFolder(folder.id)}
+        onClick={() => handleSelectWorkspace(workspace.id)}
       >
-        {/* Delete folder icon (visible on hover) */}
+        {/* Delete workspace icon (visible on hover) */}
         {!isCollapsed && (
           <button
-            onClick={(e) => handleDeleteClick(folder.id, e)}
+            onClick={(e) => handleDeleteClick(workspace.id, e)}
             className={`w-5 h-5 mr-1 ${isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity duration-200 cursor-pointer text-red-500 hover:text-red-700`}
-            title="Delete folder"
-            aria-label="Delete folder"
+            title="Delete workspace"
+            aria-label="Delete workspace"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -55,7 +55,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
         {/* Expand/collapse icon */}
         {hasChildren && !isCollapsed ? (
           <button
-            onClick={(e) => handleToggleFolder(folder.id, e)}
+            onClick={(e) => handleToggleWorkspace(workspace.id, e)}
             className="w-5 h-5 mr-1 flex items-center justify-center cursor-pointer"
           >
             <svg
@@ -81,7 +81,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
           <div className="w-5 h-5 mr-1"></div>
         ) : null}
 
-        {/* Folder icon */}
+        {/* Workspace icon */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className={`h-5 w-5 ${!isCollapsed ? "mr-2" : "mx-auto"}`}
@@ -97,17 +97,17 @@ const FolderItem: React.FC<FolderItemProps> = ({
           />
         </svg>
 
-        {/* Folder name */}
+        {/* Workspace name */}
         {!isCollapsed && (
-          <span className="flex-1 truncate">{folder.title}</span>
+          <span className="flex-1 truncate">{workspace.title}</span>
         )}
 
-        {/* Add subfolder button (only visible on hover) */}
+        {/* Add subworkspace button (only visible on hover) */}
         {!isCollapsed && (
           <button
-            onClick={(e) => handleAddSubfolder(folder.id, e)}
+            onClick={(e) => handleAddSubworkspace(workspace.id, e)}
             className={`w-5 h-5 ${isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity duration-200 cursor-pointer`}
-            title="Add subfolder"
+            title="Add subworkspace"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -130,18 +130,18 @@ const FolderItem: React.FC<FolderItemProps> = ({
       {/* Render children if expanded */}
       {!isCollapsed && isExpanded && hasChildren && (
         <div className="ml-2 overflow-hidden transition-all duration-300 ease-in-out">
-          {folder.children?.map((childFolder) => (
-            <FolderItem
-              key={childFolder.id}
-              folder={childFolder}
+          {workspace.children?.map((childWorkspace) => (
+            <WorkspaceItem
+              key={childWorkspace.id}
+              workspace={childWorkspace}
               depth={depth + 1}
               isCollapsed={isCollapsed}
               isMobile={isMobile}
-              isSelected={isSelected === childFolder.id}
-              expandedFolders={expandedFolders}
-              handleToggleFolder={handleToggleFolder}
-              handleSelectFolder={handleSelectFolder}
-              handleAddSubfolder={handleAddSubfolder}
+              isSelected={isSelected === childWorkspace.id}
+              expandedWorkspaces={expandedWorkspaces}
+              handleToggleWorkspace={handleToggleWorkspace}
+              handleSelectWorkspace={handleSelectWorkspace}
+              handleAddSubworkspace={handleAddSubworkspace}
               handleDeleteClick={handleDeleteClick}
             />
           ))}
@@ -151,4 +151,4 @@ const FolderItem: React.FC<FolderItemProps> = ({
   );
 };
 
-export default FolderItem;
+export default WorkspaceItem;

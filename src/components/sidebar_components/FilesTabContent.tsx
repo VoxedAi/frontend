@@ -1,11 +1,11 @@
 import React, { useRef } from "react";
-import { ExtendedNotebookFile } from "./SidebarTypes";
+import { ExtendedSpaceFile } from "./SidebarTypes";
 import FileListItem from "./FileListItem";
 import { getFileSize } from "./SidebarUtils";
 import { Tooltip } from "../Tooltip";
 
 interface FilesTabContentProps {
-  files: ExtendedNotebookFile[];
+  files: ExtendedSpaceFile[];
   isLoadingFiles: boolean;
   isMobile: boolean;
   checkedFiles: Set<string>;

@@ -54,8 +54,8 @@ useEffect(() => {
   }
 }, [files, validateFiles]);
 
-// Pass to NotebookView
-<NotebookView
+// Pass to SpaceView
+<SpaceView
   // ...other props
   checkedFiles={toggledFiles}
   toggleFileChecked={(fileId, e) => {

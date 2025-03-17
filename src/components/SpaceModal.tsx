@@ -1,39 +1,39 @@
 import { useState, useEffect } from "react";
-import type { Folder } from "../services/supabase";
+import type { Workspace } from "../services/supabase";
 
-interface NotebookModalProps {
+interface SpaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (notebookData: {
+  onSubmit: (spaceData: {
     title: string;
     description: string;
-    folderId: string | "unorganized";
+    workspaceId: string | "unorganized";
   }) => Promise<void>;
-  folders: Folder[];
+  workspaces: Workspace[];
   initialData?: {
     title: string;
     description: string;
-    folderId: string | "unorganized";
+    workspaceId: string | "unorganized";
   };
   isEditing: boolean;
-  selectedFolderId?: string | null;
+  selectedWorkspaceId?: string | null;
 }
 
-export default function NotebookModal({
+export default function SpaceModal({
   isOpen,
   onClose,
   onSubmit,
-  folders,
+  workspaces,
   initialData,
   isEditing,
-  selectedFolderId,
-}: NotebookModalProps) {
+  selectedWorkspaceId,
+}: SpaceModalProps) {
   const MAX_TITLE_LENGTH = 30;
   const MAX_DESCRIPTION_LENGTH = 300;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [folderId, setFolderId] = useState<string | "unorganized">(
+  const [workspaceId, setWorkspaceId] = useState<string | "unorganized">(
     "unorganized",
   );
   const [error, setError] = useState<string | null>(null);
@@ -43,16 +43,16 @@ export default function NotebookModal({
     if (initialData) {
       setTitle(initialData.title);
       setDescription(initialData.description);
-      setFolderId(initialData.folderId);
-    } else if (selectedFolderId && selectedFolderId !== "unorganized") {
-      setFolderId(selectedFolderId);
+      setWorkspaceId(initialData.workspaceId);
+    } else if (selectedWorkspaceId && selectedWorkspaceId !== "unorganized") {
+      setWorkspaceId(selectedWorkspaceId);
     }
-  }, [initialData, selectedFolderId, isOpen]);
+  }, [initialData, selectedWorkspaceId, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Notebook title is required");
+      setError("Space title is required");
       return;
     }
 
@@ -61,41 +61,41 @@ export default function NotebookModal({
       await onSubmit({
         title,
         description,
-        folderId,
+        workspaceId,
       });
 
       // Reset form
       if (!isEditing) {
         setTitle("");
         setDescription("");
-        setFolderId("unorganized");
+        setWorkspaceId("unorganized");
       }
       setError(null);
     } catch (err) {
-      console.error("Error submitting notebook:", err);
-      setError("An error occurred while saving the notebook");
+      console.error("Error submitting space:", err);
+      setError("An error occurred while saving the space");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Recursive function to build folder options
-  const renderFolderOptions = (folders: Folder[], depth = 0) => {
+  // Recursive function to build workspace options
+  const renderWorkspaceOptions = (workspaces: Workspace[], depth = 0) => {
     const options: JSX.Element[] = [];
 
-    folders.forEach((folder) => {
-      // Add the current folder with proper indentation
+    workspaces.forEach((workspace) => {
+      // Add the current workspace with proper indentation
       options.push(
-        <option key={folder.id} value={folder.id}>
+        <option key={workspace.id} value={workspace.id}>
           {"\u00A0".repeat(depth * 4)}
           {depth > 0 ? "↳ " : ""}
-          {folder.title}
+          {workspace.title}
         </option>,
       );
 
       // Add children if any
-      if (folder.children && folder.children.length > 0) {
-        options.push(...renderFolderOptions(folder.children, depth + 1));
+      if (workspace.children && workspace.children.length > 0) {
+        options.push(...renderWorkspaceOptions(workspace.children, depth + 1));
       }
     });
 
@@ -109,7 +109,7 @@ export default function NotebookModal({
       <div className="bg-card rounded-lg shadow-xl max-w-md w-full overflow-hidden">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-adaptive mb-6">
-            {isEditing ? "Edit Notebook" : "Create New Notebook"}
+            {isEditing ? "Edit Space" : "Create New Space"}
           </h2>
 
           {error && (
@@ -122,7 +122,7 @@ export default function NotebookModal({
             <div className="mb-6 space-y-4">
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="title" className="text-muted">
-                  Notebook name
+                  Space name
                 </label>
                 <span className="text-sm text-muted">
                   {title.length}/{MAX_TITLE_LENGTH}
@@ -136,13 +136,13 @@ export default function NotebookModal({
                   setTitle(e.target.value.slice(0, MAX_TITLE_LENGTH))
                 }
                 className="w-full px-4 py-3 border border-adaptive rounded-lg bg-input text-adaptive focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter notebook name"
+                placeholder="Enter space name"
                 required
                 autoFocus
               />
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="description" className="text-muted">
-                  Notebook description
+                  Space description
                 </label>
                 <span className="text-sm text-muted">
                   {description.length}/{MAX_DESCRIPTION_LENGTH}
@@ -158,22 +158,22 @@ export default function NotebookModal({
                   )
                 }
                 className="w-full px-4 py-3 border border-adaptive rounded-lg bg-input text-adaptive focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter notebook description"
+                placeholder="Enter space description"
               />
             </div>
 
             <div className="mb-6">
-              <label htmlFor="folder" className="block text-muted mb-2">
-                Folder
+              <label htmlFor="workspace" className="block text-muted mb-2">
+                Workspace
               </label>
               <select
-                id="folder"
-                value={folderId}
-                onChange={(e) => setFolderId(e.target.value)}
+                id="workspace"
+                value={workspaceId}
+                onChange={(e) => setWorkspaceId(e.target.value)}
                 className="w-full px-4 py-3 border border-adaptive rounded-lg bg-input text-adaptive focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 <option value="unorganized">Unorganized</option>
-                {renderFolderOptions(folders)}
+                {renderWorkspaceOptions(workspaces)}
               </select>
             </div>
 

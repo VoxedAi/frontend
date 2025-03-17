@@ -2,35 +2,35 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSupabaseUser } from "../../contexts/UserContext";
 import {
-  getUserNotebooks,
-  createNotebookWithFolder,
-  updateNotebookWithFolder,
-} from "../../services/notebookService";
+  getUserSpaces,
+  createSpaceWithWorkspace,
+  updateSpaceWithWorkspace,
+} from "../../services/spaceService";
 import {
-  getNotebooksInFolder,
-  getNotebooksInFolderRecursive,
-  getUnorganizedNotebooks,
-  getUserFoldersHierarchy,
-  isParentFolder,
-} from "../../services/folderService";
-import type { Notebook, Folder } from "../../types/notebook";
+  getSpacesInWorkspace,
+  getSpacesInWorkspaceRecursive,
+  getUnorganizedSpaces,
+  getUserWorkspacesHierarchy,
+  isParentWorkspace,
+} from "../../services/workspaceService";
+import type { Space, Workspace } from "../../types/space";
 import Sidebar from "../../components/Sidebar";
-import NotebookModal from "../../components/NotebookModal";
+import SpaceModal from "../../components/SpaceModal";
 import { useMobile } from "../../contexts/MobileContext";
 
-export default function NotebooksPage() {
+export default function SpacesPage() {
   const navigate = useNavigate();
   const { supabaseUserId, isLoading: isUserLoading } = useSupabaseUser();
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingNotebook, setEditingNotebook] = useState<Notebook | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [editingSpace, setEditingSpace] = useState<Space | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [includeNestedNotebooks, setIncludeNestedNotebooks] = useState(false);
+  const [includeNestedSpaces, setIncludeNestedSpaces] = useState(false);
 
   const isMobile = useMobile("(max-width: 768px)");
 
@@ -40,301 +40,301 @@ export default function NotebooksPage() {
     }
   }, [isMobile]);
 
-  // Function to refresh folders
-  const refreshFolders = async () => {
+  // Function to refresh workspaces
+  const refreshWorkspaces = async () => {
     if (!supabaseUserId) return;
 
     try {
-      const result = await getUserFoldersHierarchy(supabaseUserId);
+      const result = await getUserWorkspacesHierarchy(supabaseUserId);
       if (result.success && result.data) {
-        setFolders(result.data);
+        setWorkspaces(result.data);
       }
     } catch (err) {
-      console.error("Error refreshing folders:", err);
+      console.error("Error refreshing workspaces:", err);
     }
   };
 
-  // Get current folder ID for the notebook being edited
-  const getCurrentFolderId = (notebookId: string): string | "unorganized" => {
-    // Find the folder that contains this notebook
-    const findFolderWithNotebook = (folders: Folder[]): string | null => {
-      for (const folder of folders) {
-        if (folder.notebooks?.some((nb) => nb.id === notebookId)) {
-          return folder.id;
+  // Get current workspace ID for the space being edited
+  const getCurrentWorkspaceId = (spaceId: string): string | "unorganized" => {
+    // Find the workspace that contains this space
+    const findWorkspaceWithSpace = (workspaces: Workspace[]): string | null => {
+      for (const workspace of workspaces) {
+        if (workspace.spaces?.some((nb) => nb.id === spaceId)) {
+          return workspace.id;
         }
-        if (folder.children && folder.children.length > 0) {
-          const childResult = findFolderWithNotebook(folder.children);
+        if (workspace.children && workspace.children.length > 0) {
+          const childResult = findWorkspaceWithSpace(workspace.children);
           if (childResult) return childResult;
         }
       }
       return null;
     };
 
-    const folderId = findFolderWithNotebook(folders);
-    return folderId || "unorganized";
+    const workspaceId = findWorkspaceWithSpace(workspaces);
+    return workspaceId || "unorganized";
   };
 
-  // Refresh folders when component mounts
+  // Refresh workspaces when component mounts
   useEffect(() => {
     if (supabaseUserId) {
-      refreshFolders();
+      refreshWorkspaces();
     }
   }, [supabaseUserId]);
 
-  // Refresh folders when selected folder changes
+  // Refresh workspaces when selected workspace changes
   useEffect(() => {
     if (
       supabaseUserId &&
-      selectedFolderId &&
-      selectedFolderId !== "unorganized"
+      selectedWorkspaceId &&
+      selectedWorkspaceId !== "unorganized"
     ) {
-      refreshFolders();
+      refreshWorkspaces();
     }
-  }, [selectedFolderId, supabaseUserId]);
+  }, [selectedWorkspaceId, supabaseUserId]);
 
   useEffect(() => {
-    async function fetchNotebooks() {
+    async function fetchSpaces() {
       if (!supabaseUserId) return;
 
       setIsLoading(true);
       try {
         let result;
 
-        if (selectedFolderId === null) {
-          // Show all notebooks
-          result = await getUserNotebooks(supabaseUserId);
-        } else if (selectedFolderId === "unorganized") {
-          // Show unorganized notebooks
-          result = await getUnorganizedNotebooks(supabaseUserId);
+        if (selectedWorkspaceId === null) {
+          // Show all spaces
+          result = await getUserSpaces(supabaseUserId);
+        } else if (selectedWorkspaceId === "unorganized") {
+          // Show unorganized spaces
+          result = await getUnorganizedSpaces(supabaseUserId);
         } else {
-          // Show notebooks in the selected folder
-          if (includeNestedNotebooks) {
-            result = await getNotebooksInFolderRecursive(selectedFolderId);
+          // Show spaces in the selected workspace
+          if (includeNestedSpaces) {
+            result = await getSpacesInWorkspaceRecursive(selectedWorkspaceId);
           } else {
-            result = await getNotebooksInFolder(selectedFolderId);
+            result = await getSpacesInWorkspace(selectedWorkspaceId);
           }
         }
 
         if (result.success && result.data) {
-          setNotebooks(result.data);
+          setSpaces(result.data);
         } else {
-          setError("Failed to load notebooks");
+          setError("Failed to load spaces");
         }
       } catch (err) {
-        console.error("Error fetching notebooks:", err);
-        setError("An error occurred while loading notebooks");
+        console.error("Error fetching spaces:", err);
+        setError("An error occurred while loading spaces");
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchNotebooks();
-  }, [supabaseUserId, selectedFolderId, includeNestedNotebooks]);
+    fetchSpaces();
+  }, [supabaseUserId, selectedWorkspaceId, includeNestedSpaces]);
 
-  // Fetch folders for dropdown
+  // Fetch workspaces for dropdown
   useEffect(() => {
-    async function fetchFolders() {
+    async function fetchWorkspaces() {
       if (!supabaseUserId) return;
 
       try {
-        const result = await getUserFoldersHierarchy(supabaseUserId);
+        const result = await getUserWorkspacesHierarchy(supabaseUserId);
         if (result.success && result.data) {
-          setFolders(result.data);
+          setWorkspaces(result.data);
         }
       } catch (err) {
-        console.error("Error fetching folders:", err);
+        console.error("Error fetching workspaces:", err);
       }
     }
 
-    fetchFolders();
-  }, [supabaseUserId, selectedFolderId]);
+    fetchWorkspaces();
+  }, [supabaseUserId, selectedWorkspaceId]);
 
-  const handleCreateNotebook = async (notebookData: {
+  const handleCreateSpace = async (spaceData: {
     title: string;
     description: string;
-    folderId: string | "unorganized";
+    workspaceId: string | "unorganized";
   }) => {
     if (!supabaseUserId) return;
 
     try {
-      // Use the folder-aware notebook creation with the selected folder
-      const folderId =
-        notebookData.folderId !== "unorganized"
-          ? notebookData.folderId
+      // Use the workspace-aware space creation with the selected workspace
+      const workspaceId =
+        spaceData.workspaceId !== "unorganized"
+          ? spaceData.workspaceId
           : undefined;
 
-      const result = await createNotebookWithFolder(
+      const result = await createSpaceWithWorkspace(
         supabaseUserId,
-        notebookData.title,
-        notebookData.description || undefined,
-        folderId,
+        spaceData.title,
+        spaceData.description || undefined,
+        workspaceId,
       );
 
       if (result.success && result.data) {
         // Only add to the UI list if we're in the right view
         if (
-          selectedFolderId === null || // All notebooks
-          (selectedFolderId === "unorganized" && !folderId) || // Unorganized view and no folder selected
-          (folderId && selectedFolderId === folderId) // Current folder matches selected folder
+          selectedWorkspaceId === null || // All spaces
+          (selectedWorkspaceId === "unorganized" && !workspaceId) || // Unorganized view and no workspace selected
+          (workspaceId && selectedWorkspaceId === workspaceId) // Current workspace matches selected workspace
         ) {
-          setNotebooks([result.data, ...notebooks]);
+          setSpaces([result.data, ...spaces]);
         }
 
         setShowModal(false);
         setError(null);
 
-        // Navigate to the new notebook
-        navigate(`/notebooks/${result.data.id}`);
+        // Navigate to the new space
+        navigate(`/spaces/${result.data.id}`);
       } else {
-        setError("Failed to create notebook");
+        setError("Failed to create space");
       }
     } catch (err) {
-      console.error("Error creating notebook:", err);
-      setError("An error occurred while creating the notebook");
+      console.error("Error creating space:", err);
+      setError("An error occurred while creating the space");
       throw err;
     }
   };
 
-  const handleUpdateNotebook = async (notebookData: {
+  const handleUpdateSpace = async (spaceData: {
     title: string;
     description: string;
-    folderId: string | "unorganized";
+    workspaceId: string | "unorganized";
   }) => {
-    if (!editingNotebook) return;
+    if (!editingSpace) return;
 
     try {
-      const folderId =
-        notebookData.folderId !== "unorganized"
-          ? notebookData.folderId
+      const workspaceId =
+        spaceData.workspaceId !== "unorganized"
+          ? spaceData.workspaceId
           : undefined;
 
-      const result = await updateNotebookWithFolder(
-        editingNotebook.id,
+      const result = await updateSpaceWithWorkspace(
+        editingSpace.id,
         {
-          title: notebookData.title,
-          description: notebookData.description || undefined,
+          title: spaceData.title,
+          description: spaceData.description || undefined,
         },
-        folderId,
+        workspaceId,
       );
 
       if (result.success && result.data) {
-        // Update the notebook in the list
-        setNotebooks(
-          notebooks.map((nb) =>
-            nb.id === editingNotebook.id ? result.data! : nb,
+        // Update the space in the list
+        setSpaces(
+          spaces.map((nb) =>
+            nb.id === editingSpace.id ? result.data! : nb,
           ),
         );
 
-        // If folder changed, we might need to refresh the view
-        if (getCurrentFolderId(editingNotebook.id) !== notebookData.folderId) {
-          // If we're in a specific folder view and the notebook was moved out
+        // If workspace changed, we might need to refresh the view
+        if (getCurrentWorkspaceId(editingSpace.id) !== spaceData.workspaceId) {
+          // If we're in a specific workspace view and the space was moved out
           if (
-            selectedFolderId &&
-            selectedFolderId !== "unorganized" &&
-            selectedFolderId !== notebookData.folderId
+            selectedWorkspaceId &&
+            selectedWorkspaceId !== "unorganized" &&
+            selectedWorkspaceId !== spaceData.workspaceId
           ) {
-            setNotebooks(
-              notebooks.filter((nb) => nb.id !== editingNotebook.id),
+            setSpaces(
+              spaces.filter((nb) => nb.id !== editingSpace.id),
             );
           }
         }
 
         setShowModal(false);
-        setEditingNotebook(null);
+        setEditingSpace(null);
         setIsEditing(false);
         setError(null);
       } else {
-        setError("Failed to update notebook");
+        setError("Failed to update space");
       }
     } catch (err) {
-      console.error("Error updating notebook:", err);
-      setError("An error occurred while updating the notebook");
+      console.error("Error updating space:", err);
+      setError("An error occurred while updating the space");
       throw err;
     }
   };
 
-  const handleSelectFolder = (folderId: string | null) => {
-    setSelectedFolderId(folderId);
+  const handleSelectWorkspace = (workspaceId: string | null) => {
+    setSelectedWorkspaceId(workspaceId);
   };
 
-  const getFolderTitle = () => {
-    if (selectedFolderId === null) return "All Notebooks";
-    if (selectedFolderId === "unorganized") return "Unorganized Notebooks";
+  const getWorkspaceTitle = () => {
+    if (selectedWorkspaceId === null) return "All Spaces";
+    if (selectedWorkspaceId === "unorganized") return "Unorganized Spaces";
 
-    // Find the selected folder's title
-    const findFolderName = (folders: Folder[]): string | null => {
-      for (const folder of folders) {
-        if (folder.id === selectedFolderId) {
-          return folder.title;
+    // Find the selected workspace's title
+    const findWorkspaceName = (workspaces: Workspace[]): string | null => {
+      for (const workspace of workspaces) {
+        if (workspace.id === selectedWorkspaceId) {
+          return workspace.title;
         }
-        if (folder.children && folder.children.length > 0) {
-          const childResult = findFolderName(folder.children);
+        if (workspace.children && workspace.children.length > 0) {
+          const childResult = findWorkspaceName(workspace.children);
           if (childResult) return childResult;
         }
       }
       return null;
     };
 
-    const folderName = findFolderName(folders);
+    const workspaceName = findWorkspaceName(workspaces);
 
-    // If we couldn't find the folder name, refresh folders and return a placeholder
-    if (!folderName) {
-      refreshFolders();
-      return "Loading Folder...";
+    // If we couldn't find the workspace name, refresh workspaces and return a placeholder
+    if (!workspaceName) {
+      refreshWorkspaces();
+      return "Loading Workspace...";
     }
 
-    return folderName;
+    return workspaceName;
   };
 
   const openCreateModal = () => {
     setIsEditing(false);
-    setEditingNotebook(null);
+    setEditingSpace(null);
     setShowModal(true);
   };
 
-  const openEditModal = (notebook: Notebook) => {
+  const openEditModal = (space: Space) => {
     setIsEditing(true);
-    setEditingNotebook(notebook);
+    setEditingSpace(space);
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setIsEditing(false);
-    setEditingNotebook(null);
+    setEditingSpace(null);
   };
 
-  const handleSubmit = async (notebookData: {
+  const handleSubmit = async (spaceData: {
     title: string;
     description: string;
-    folderId: string | "unorganized";
+    workspaceId: string | "unorganized";
   }) => {
-    if (isEditing && editingNotebook) {
-      return handleUpdateNotebook(notebookData);
+    if (isEditing && editingSpace) {
+      return handleUpdateSpace(spaceData);
     } else {
-      return handleCreateNotebook(notebookData);
+      return handleCreateSpace(spaceData);
     }
   };
 
-  // Check if the current view is a specific folder (not All or Unorganized)
+  // Check if the current view is a specific workspace (not All or Unorganized)
   const [isParent, setIsParent] = useState(false);
 
   useEffect(() => {
-    async function checkIfParentFolder() {
-      if (selectedFolderId && selectedFolderId !== "unorganized") {
-        const result = await isParentFolder(selectedFolderId);
+    async function checkIfParentWorkspace() {
+      if (selectedWorkspaceId && selectedWorkspaceId !== "unorganized") {
+        const result = await isParentWorkspace(selectedWorkspaceId);
         setIsParent(!!result);
       } else {
         setIsParent(false);
       }
     }
 
-    checkIfParentFolder();
-  }, [selectedFolderId]);
+    checkIfParentWorkspace();
+  }, [selectedWorkspaceId]);
 
-  // Only show toggle if we're in a specific folder view that has children
+  // Only show toggle if we're in a specific workspace view that has children
   const showNestedToggle =
-    selectedFolderId !== null && selectedFolderId !== "unorganized" && isParent;
+    selectedWorkspaceId !== null && selectedWorkspaceId !== "unorganized" && isParent;
 
   if (isUserLoading) {
     return (
@@ -352,9 +352,9 @@ export default function NotebooksPage() {
           userId={supabaseUserId}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          selectedFolderId={selectedFolderId}
-          onSelectFolder={handleSelectFolder}
-          onFoldersUpdated={refreshFolders}
+          selectedWorkspaceId={selectedWorkspaceId}
+          onSelectWorkspace={handleSelectWorkspace}
+          onWorkspacesUpdated={refreshWorkspaces}
         />
       )}
 
@@ -365,24 +365,24 @@ export default function NotebooksPage() {
           <div className="container mx-auto px-4 py-8">
             <div className="flex space-x-10 items-center mb-8">
               <h1 className="text-3xl font-bold text-adaptive">
-                {getFolderTitle()}
+                {getWorkspaceTitle()}
               </h1>
 
-              {/* Toggle for including nested notebooks - only show in folder view */}
+              {/* Toggle for including nested spaces - only show in workspace view */}
               {showNestedToggle && (
                 <div className="flex items-center">
                   <label className="inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="sr-only peer"
-                      checked={includeNestedNotebooks}
+                      checked={includeNestedSpaces}
                       onChange={() =>
-                        setIncludeNestedNotebooks(!includeNestedNotebooks)
+                        setIncludeNestedSpaces(!includeNestedSpaces)
                       }
                     />
                     <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-black dark:peer-checked:bg-white"></div>
                     <span className="ms-3 text-sm font-medium text-adaptive">
-                      Include nested notebooks
+                      Include nested spaces
                     </span>
                   </label>
                 </div>
@@ -401,8 +401,8 @@ export default function NotebooksPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Notebook creation card */}
-                {notebooks.length !== 0 && (
+                {/* Space creation card */}
+                {spaces.length !== 0 && (
                   <div
                     onClick={openCreateModal}
                     className="flex flex-col items-center justify-center bg-transparent border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors h-full min-h-[200px]"
@@ -425,30 +425,30 @@ export default function NotebooksPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-gray-500 dark:text-gray-400 font-medium">
-                        Create New Notebook
+                        Create New Space
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Notebook cards */}
-                {notebooks.map((notebook) => (
+                {/* Space cards */}
+                {spaces.map((space) => (
                   <div
-                    key={notebook.id}
+                    key={space.id}
                     className="bg-card p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow relative group"
                   >
-                    <Link to={`/notebooks/${notebook.id}`} className="block">
+                    <Link to={`/spaces/${space.id}`} className="block">
                       <h2 className="text-xl font-bold text-adaptive mb-2">
-                        {notebook.title}
+                        {space.title}
                       </h2>
-                      {notebook.description && (
+                      {space.description && (
                         <p className="text-muted mb-4">
-                          {notebook.description}
+                          {space.description}
                         </p>
                       )}
                       <div className="text-sm text-muted">
                         Created{" "}
-                        {new Date(notebook.created_at).toLocaleDateString()}
+                        {new Date(space.created_at).toLocaleDateString()}
                       </div>
                     </Link>
 
@@ -457,10 +457,10 @@ export default function NotebooksPage() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        openEditModal(notebook);
+                        openEditModal(space);
                       }}
                       className="absolute top-3 right-3 p-2 bg-hover dark:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      aria-label="Edit notebook"
+                      aria-label="Edit space"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -483,20 +483,20 @@ export default function NotebooksPage() {
             )}
 
             {/* Empty state */}
-            {!isLoading && notebooks.length === 0 && (
+            {!isLoading && spaces.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-muted text-lg mb-4">
-                  {selectedFolderId === null
-                    ? "You don't have any notebooks yet."
-                    : selectedFolderId === "unorganized"
-                      ? "You don't have any unorganized notebooks."
-                      : "This folder doesn't contain any notebooks."}
+                  {selectedWorkspaceId === null
+                    ? "You don't have any spaces yet."
+                    : selectedWorkspaceId === "unorganized"
+                      ? "You don't have any unorganized spaces."
+                      : "This workspace doesn't contain any spaces."}
                 </p>
                 <button
                   onClick={openCreateModal}
                   className="px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
                 >
-                  Create Notebook
+                  Create Space
                 </button>
               </div>
             )}
@@ -504,24 +504,24 @@ export default function NotebooksPage() {
         </main>
       </div>
 
-      {/* Notebook Modal - for both creating and editing */}
-      <NotebookModal
+      {/* Space Modal - for both creating and editing */}
+      <SpaceModal
         isOpen={showModal}
         onClose={closeModal}
         onSubmit={handleSubmit}
-        folders={folders}
+        workspaces={workspaces}
         initialData={
-          editingNotebook
+          editingSpace
             ? {
-                title: editingNotebook.title,
-                description: editingNotebook.description || "",
-                folderId: getCurrentFolderId(editingNotebook.id),
+                title: editingSpace.title,
+                description: editingSpace.description || "",
+                workspaceId: getCurrentWorkspaceId(editingSpace.id),
               }
             : undefined
         }
         isEditing={isEditing}
-        selectedFolderId={
-          selectedFolderId !== "unorganized" ? selectedFolderId : undefined
+        selectedWorkspaceId={
+          selectedWorkspaceId !== "unorganized" ? selectedWorkspaceId : undefined
         }
       />
     </div>

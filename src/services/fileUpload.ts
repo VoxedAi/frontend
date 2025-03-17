@@ -1,11 +1,11 @@
 import { supabase } from "./supabase";
-import type { NotebookFile } from "../types/notebook";
+import type { SpaceFile } from "../types/space";
 
 /**
- * Uploads a file to Supabase storage and adds a record to the notebook_files table
+ * Uploads a file to Supabase storage and adds a record to the space_files table
  * Then sends the file to the ingest API endpoint for processing
  * @param file The file to upload
- * @param notebookId The ID of the notebook to associate the file with
+ * @param spaceId The ID of the space to associate the file with
  * @param userId The ID of the user uploading the file
  * @param supabaseClient Optional authenticated Supabase client
  * @param retryCount Number of times to retry on auth errors
@@ -13,13 +13,13 @@ import type { NotebookFile } from "../types/notebook";
 export async function uploadFile(
   file: File,
   isNote: boolean = false,
-  notebookId: string,
+  spaceId: string,
   userId: string,
   supabaseClient = supabase,
   retryCount: number = 0,
 ): Promise<{
   success: boolean;
-  data?: NotebookFile;
+  data?: SpaceFile;
   error?: any;
   isProcessing?: boolean;
   message?: string;
@@ -30,7 +30,7 @@ export async function uploadFile(
     console.log("Starting file upload with user ID:", userId);
 
     // Format the storage path correctly for our bucket policies
-    const filePath = `${userId}/${notebookId}/${Date.now()}_${file.name}`;
+    const filePath = `${userId}/${spaceId}/${Date.now()}_${file.name}`;
 
     console.log("Uploading to path:", filePath);
 
@@ -81,9 +81,9 @@ export async function uploadFile(
 
     console.log("File uploaded successfully, creating database record");
 
-    // Create a record in the notebook_files table
-    const fileData: Omit<NotebookFile, "id" | "created_at"> = {
-      notebook_id: notebookId,
+    // Create a record in the space_files table
+    const fileData: Omit<SpaceFile, "id" | "created_at"> = {
+      space_id: spaceId,
       user_id: userId, // Keep the original userId for database records
       file_name: file.name,
       file_path: filePath,
@@ -93,7 +93,7 @@ export async function uploadFile(
     };
 
     const { data: fileRecord, error: dbError } = await supabaseClient
-      .from("notebook_files")
+      .from("space_files")
       .insert([fileData])
       .select()
       .single();
@@ -144,19 +144,19 @@ export async function uploadFile(
 }
 
 /**
- * Fetches all files for a notebook
- * @param notebookId The ID of the notebook to fetch files for
+ * Fetches all files for a space
+ * @param spaceId The ID of the space to fetch files for
  * @param supabaseClient Optional authenticated Supabase client
  */
-export async function getNotebookFiles(
-  notebookId: string,
+export async function getSpaceFiles(
+  spaceId: string,
   supabaseClient = supabase,
-): Promise<{ success: boolean; data?: NotebookFile[]; error?: any }> {
+): Promise<{ success: boolean; data?: SpaceFile[]; error?: any }> {
   try {
     const { data, error } = await supabaseClient
-      .from("notebook_files")
+      .from("space_files")
       .select("*")
-      .eq("notebook_id", notebookId)
+      .eq("space_id", spaceId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -165,7 +165,7 @@ export async function getNotebookFiles(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Error fetching notebook files:", error);
+    console.error("Error fetching space files:", error);
     return { success: false, error };
   }
 }
@@ -300,7 +300,7 @@ export async function processFile(
 /**
  * Uploads and processes a file with retry logic and state management
  * @param file The file to upload
- * @param notebookId The ID of the notebook
+ * @param spaceId The ID of the space
  * @param userId The ID of the user
  * @param refreshTokenFn Function to refresh auth token
  * @param getClientFn Function to get Supabase client
@@ -309,14 +309,14 @@ export async function processFile(
  */
 export async function uploadAndProcessFile(
   file: File,
-  notebookId: string,
+  spaceId: string,
   userId: string,
   refreshTokenFn: () => Promise<void>,
   getClientFn: () => Promise<any>,
   isNote: boolean = false,
 ): Promise<{
   success: boolean,
-  data?: NotebookFile,
+  data?: SpaceFile,
   error?: any,
   tempId: string,
   isProcessing?: boolean,
@@ -342,7 +342,7 @@ export async function uploadAndProcessFile(
       const result = await uploadFile(
         file,
         isNote,
-        notebookId,
+        spaceId,
         userId,
         authClient,
         retryCount
@@ -392,7 +392,7 @@ export async function uploadAndProcessFile(
     }
 
     // Add the file to the files list with processing status
-    const newFile: NotebookFile & { isProcessing?: boolean } = {
+    const newFile: SpaceFile & { isProcessing?: boolean } = {
       ...result.data,
       isProcessing: result.isProcessing || false,
     };

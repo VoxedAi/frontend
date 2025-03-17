@@ -12,7 +12,7 @@ import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 // Marketing Pages
-import SignInUp from "./pages/auth/SignIn-Up";
+import SignInUp from "./new_pages/auth/SignIn-Up";
 import Header from "./components/Header";
 
 // Contexts / Light Weight Files
@@ -22,11 +22,10 @@ import TokenRefresher from "./components/TokenRefresher";
 import LoadingSpinner from "./components/LoadingSpinner";
 import DevelopmentBanner from "./components/DevelopmentBanner";
 
-// Web App
-const NotebooksPage = lazy(() => import("./pages/notebooks/Notebooks"));
-const NotebookDetailPage = lazy(() => import("./pages/notebooks/NotebookDetail"));
+// Web App - Lazy loaded components
 const Sandbox = lazy(() => import("./components/Sandbox"));
-
+const SpaceUI = lazy(() => import("./new_pages/Space"));
+const WorkspacesUI = lazy(() => import("./new_pages/Workspaces"));
 
 export default function App() {
   // Get current theme from our context
@@ -42,7 +41,6 @@ export default function App() {
       </SignedIn>
       
       <Router>
-        <Header />
         <Toaster
           position="top-center"
           toastOptions={{
@@ -78,7 +76,7 @@ export default function App() {
             path="*"
             element={
               <>
-                <Navigate to="/notebooks" />
+                <Navigate to="/spaces" />
               </>
             }
           />
@@ -91,7 +89,7 @@ export default function App() {
                   <SignInUp />
                 </SignedOut>
                 <SignedIn>
-                  <Navigate to="/notebooks" />
+                  <Navigate to="/spaces" />
                 </SignedIn>
               </>
             }
@@ -105,19 +103,19 @@ export default function App() {
                   <SignInUp />
                 </SignedOut>
                 <SignedIn>
-                  <Navigate to="/notebooks" />
+                  <Navigate to="/spaces" />
                 </SignedIn>
               </>
             }
           />
 
           {/* Web App - Wrap lazy-loaded components with Suspense */}
-          <Route path="/notebooks" element={
+          <Route path="/spaces" element={
             <>
               <SignedIn>
+                <Header />
                 <Suspense fallback={<LoadingSpinner size="large" />}>
-                  <DevelopmentBanner />
-                  <NotebooksPage />
+                  <WorkspacesUI />
                 </Suspense>
               </SignedIn>
               <SignedOut>
@@ -125,11 +123,11 @@ export default function App() {
               </SignedOut>
             </>
           } />
-          <Route path="/notebooks/:id" element={
+          <Route path="/spaces/:id" element={
             <>
               <SignedIn>
                 <Suspense fallback={<LoadingSpinner size="large" />}>
-                  <NotebookDetailPage />
+                  <SpaceUI />
                 </Suspense>
               </SignedIn>
               <SignedOut>

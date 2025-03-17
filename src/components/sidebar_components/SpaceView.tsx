@@ -1,9 +1,9 @@
 import React from "react";
-import { NotebookViewProps } from "./SidebarTypes";
+import { SpaceViewProps } from "./SidebarTypes";
 import FilesTabContent from "./FilesTabContent";
 import ChatsTabContent from "./ChatsTabContent";
 
-const NotebookView: React.FC<NotebookViewProps> = ({
+const SpaceView: React.FC<SpaceViewProps> = ({
   isMobile,
   isCollapsed,
   activeTab,
@@ -86,4 +86,4 @@ const NotebookView: React.FC<NotebookViewProps> = ({
   );
 };
 
-export default NotebookView;
+export default SpaceView;

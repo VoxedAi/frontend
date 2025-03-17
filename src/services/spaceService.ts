@@ -1,20 +1,20 @@
 import { supabase } from "./supabase";
-import type { Notebook } from "../types/notebook";
+import type { Space } from "../types/space";
 import type { ChatMessage, ChatSession } from "../types/chat";
-import { addNotebookToFolder } from "./folderService";
+import { addSpaceToWorkspace } from "./workspaceService";
 import { streamChatWithGemini } from "./geminiService";
 
 /**
- * Create a new notebook for a user
+ * Create a new space for a user
  */
-export async function createNotebook(
+export async function createSpace(
   userId: string,
   title: string,
   description?: string,
-): Promise<{ success: boolean; data?: Notebook; error?: any }> {
+): Promise<{ success: boolean; data?: Space; error?: any }> {
   try {
     const { data, error } = await supabase
-      .from("notebooks")
+      .from("spaces")
       .insert([
         {
           user_id: userId,
@@ -31,20 +31,20 @@ export async function createNotebook(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Error creating notebook:", error);
+    console.error("Error creating space:", error);
     return { success: false, error };
   }
 }
 
 /**
- * Get all notebooks for a user
+ * Get all spaces for a user
  */
-export async function getUserNotebooks(
+export async function getUserSpaces(
   userId: string,
-): Promise<{ success: boolean; data?: Notebook[]; error?: any }> {
+): Promise<{ success: boolean; data?: Space[]; error?: any }> {
   try {
     const { data, error } = await supabase
-      .from("notebooks")
+      .from("spaces")
       .select("*")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false });
@@ -55,48 +55,48 @@ export async function getUserNotebooks(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Error fetching notebooks:", error);
+    console.error("Error fetching spaces:", error);
     return { success: false, error };
   }
 }
 
 /**
- * Get a specific notebook by ID
+ * Get a specific space by ID
  */
-export async function getNotebook(
-  notebookId: string,
-): Promise<{ success: boolean; data?: Notebook; error?: any }> {
+export async function getSpace(
+  spaceId: string,
+): Promise<{ success: boolean; data?: Space; error?: any }> {
   try {
-    console.log("getNotebook: Fetching notebook with ID:", notebookId);
+    console.log("getSpace: Fetching space with ID:", spaceId);
     const { data, error } = await supabase
-      .from("notebooks")
+      .from("spaces")
       .select("*")
-      .eq("id", notebookId)
+      .eq("id", spaceId)
       .single();
 
     if (error) {
-      console.error("getNotebook: Supabase error:", error);
+      console.error("getSpace: Supabase error:", error);
       throw error;
     }
 
     if (!data) {
-      console.error("getNotebook: No data returned for notebook ID:", notebookId);
-      return { success: false, error: "Notebook not found" };
+      console.error("getSpace: No data returned for space ID:", spaceId);
+      return { success: false, error: "Space not found" };
     }
 
-    console.log("getNotebook: Successfully fetched notebook:", data);
+    console.log("getSpace: Successfully fetched space:", data);
     return { success: true, data };
   } catch (error) {
-    console.error("getNotebook: Error fetching notebook:", error);
+    console.error("getSpace: Error fetching space:", error);
     return { success: false, error };
   }
 }
 
 /**
- * Create a new chat session in a notebook
+ * Create a new chat session in a space
  */
 export async function createChatSession(
-  notebookId: string,
+  spaceId: string,
   userId: string,
   title: string = "New Chat",
 ): Promise<{ success: boolean; data?: ChatSession; error?: any }> {
@@ -105,7 +105,7 @@ export async function createChatSession(
       .from("chat_sessions")
       .insert([
         {
-          notebook_id: notebookId,
+          space_id: spaceId,
           user_id: userId,
           title,
         },
@@ -125,16 +125,16 @@ export async function createChatSession(
 }
 
 /**
- * Get all chat sessions for a notebook
+ * Get all chat sessions for a space
  */
-export async function getNotebookChatSessions(
-  notebookId: string,
+export async function getSpaceChatSessions(
+  spaceId: string,
 ): Promise<{ success: boolean; data?: ChatSession[]; error?: any }> {
   try {
     const { data, error } = await supabase
       .from("chat_sessions")
       .select("*")
-      .eq("notebook_id", notebookId)
+      .eq("space_id", spaceId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -153,7 +153,7 @@ export async function getNotebookChatSessions(
  */
 export async function sendChatMessage(
   chatSessionId: string,
-  notebookId: string,
+  spaceId: string,
   userId: string,
   content: string,
   isUser: boolean = true,
@@ -164,7 +164,7 @@ export async function sendChatMessage(
       .insert([
         {
           chat_session_id: chatSessionId,
-          notebook_id: notebookId,
+          space_id: spaceId,
           user_id: userId,
           content,
           is_user: isUser,
@@ -258,58 +258,58 @@ export async function updateChatSessionTitle(
 }
 
 /**
- * Create a new notebook for a user, optionally assigning it to a folder
+ * Create a new space for a user, optionally assigning it to a workspace
  */
-export async function createNotebookWithFolder(
+export async function createSpaceWithWorkspace(
   userId: string,
   title: string,
   description?: string,
-  folderId?: string,
-): Promise<{ success: boolean; data?: Notebook; error?: any }> {
+  workspaceId?: string,
+): Promise<{ success: boolean; data?: Space; error?: any }> {
   try {
-    // Create the notebook
-    const notebookResult = await createNotebook(userId, title, description);
+    // Create the space
+    const spaceResult = await createSpace(userId, title, description);
 
-    if (!notebookResult.success || !notebookResult.data) {
-      return notebookResult;
+    if (!spaceResult.success || !spaceResult.data) {
+      return spaceResult;
     }
 
-    // If a folder was specified, add the notebook to it
-    if (folderId) {
-      const folderResult = await addNotebookToFolder(
-        folderId,
-        notebookResult.data.id,
+    // If a workspace was specified, add the space to it
+    if (workspaceId) {
+      const workspaceResult = await addSpaceToWorkspace(
+        workspaceId,
+        spaceResult.data.id,
       );
 
-      if (!folderResult.success) {
-        console.error("Failed to add notebook to folder:", folderResult.error);
-        // We don't fail the whole operation if folder assignment fails
-        // The notebook was still created
+      if (!workspaceResult.success) {
+        console.error("Failed to add space to workspace:", workspaceResult.error);
+        // We don't fail the whole operation if workspace assignment fails
+        // The space was still created
       }
     }
 
-    return notebookResult;
+    return spaceResult;
   } catch (error) {
-    console.error("Error creating notebook with folder:", error);
+    console.error("Error creating space with workspace:", error);
     return { success: false, error };
   }
 }
 
 /**
- * Update an existing notebook
+ * Update an existing space
  */
-export async function updateNotebook(
-  notebookId: string,
+export async function updateSpace(
+  spaceId: string,
   updates: {
     title?: string;
     description?: string;
   },
-): Promise<{ success: boolean; data?: Notebook; error?: any }> {
+): Promise<{ success: boolean; data?: Space; error?: any }> {
   try {
     const { data, error } = await supabase
-      .from("notebooks")
+      .from("spaces")
       .update(updates)
-      .eq("id", notebookId)
+      .eq("id", spaceId)
       .select()
       .single();
 
@@ -319,61 +319,61 @@ export async function updateNotebook(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Error updating notebook:", error);
+    console.error("Error updating space:", error);
     return { success: false, error };
   }
 }
 
 /**
- * Update a notebook and its folder assignment
+ * Update a space and its workspace assignment
  */
-export async function updateNotebookWithFolder(
-  notebookId: string,
+export async function updateSpaceWithWorkspace(
+  spaceId: string,
   updates: {
     title?: string;
     description?: string;
   },
-  folderId?: string,
-): Promise<{ success: boolean; data?: Notebook; error?: any }> {
+  workspaceId?: string,
+): Promise<{ success: boolean; data?: Space; error?: any }> {
   try {
-    // First update the notebook details
-    const notebookResult = await updateNotebook(notebookId, updates);
+    // First update the space details
+    const spaceResult = await updateSpace(spaceId, updates);
 
-    if (!notebookResult.success || !notebookResult.data) {
-      return notebookResult;
+    if (!spaceResult.success || !spaceResult.data) {
+      return spaceResult;
     }
 
-    // Handle folder assignment
-    if (folderId) {
-      // First remove from any existing folders
+    // Handle workspace assignment
+    if (workspaceId) {
+      // First remove from any existing workspaces
       await supabase
-        .from("folder_notebooks")
+        .from("workspace_spaces")
         .delete()
-        .eq("notebook_id", notebookId);
+        .eq("space_id", spaceId);
 
-      // Then add to the new folder
-      const { error: folderError } = await supabase
-        .from("folder_notebooks")
+      // Then add to the new workspace
+      const { error: workspaceError } = await supabase
+        .from("workspace_spaces")
         .insert({
-          folder_id: folderId,
-          notebook_id: notebookId,
+          workspace_id: workspaceId,
+          space_id: spaceId,
         });
 
-      if (folderError) {
-        console.error("Failed to update notebook folder:", folderError);
-        // We don't fail the whole operation if folder assignment fails
+      if (workspaceError) {
+        console.error("Failed to update space workspace:", workspaceError);
+        // We don't fail the whole operation if workspace assignment fails
       }
     } else {
-      // If no folder specified, remove from all folders (make unorganized)
+      // If no workspace specified, remove from all workspaces (make unorganized)
       await supabase
-        .from("folder_notebooks")
+        .from("workspace_spaces")
         .delete()
-        .eq("notebook_id", notebookId);
+        .eq("space_id", spaceId);
     }
 
-    return notebookResult;
+    return spaceResult;
   } catch (error) {
-    console.error("Error updating notebook with folder:", error);
+    console.error("Error updating space with workspace:", error);
     return { success: false, error };
   }
 }
@@ -454,7 +454,7 @@ export function parseStreamingResponse(streamData: string): string {
 /**
  * Sends a user message and streams an AI response
  * @param chatSessionId The chat session ID
- * @param notebookId The notebook ID
+ * @param spaceId The space ID
  * @param userId The user ID
  * @param messageText The message text to send
  * @param sandboxData Optional sandbox state data to include
@@ -463,7 +463,7 @@ export function parseStreamingResponse(streamData: string): string {
  */
 export async function sendAndStreamChatMessage(
   chatSessionId: string,
-  notebookId: string,
+  spaceId: string,
   userId: string,
   messageText: string,
   onStreamContent: (content: string) => void,
@@ -482,7 +482,7 @@ export async function sendAndStreamChatMessage(
     // Send user message to backend
     const userMessageResult = await sendChatMessage(
       chatSessionId,
-      notebookId,
+      spaceId,
       userId,
       messageText,
       true,
@@ -559,7 +559,7 @@ export async function sendAndStreamChatMessage(
     // After streaming is complete, save the AI message to the database
     const aiMessageResult = await sendChatMessage(
       chatSessionId,
-      notebookId,
+      spaceId,
       userId,
       finalResponse,
       false,

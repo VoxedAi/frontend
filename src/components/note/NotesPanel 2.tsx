@@ -14,15 +14,15 @@ import "@blocknote/mantine/style.css";
 import { useSupabaseUser } from "../../contexts/UserContext";
 import { uploadAndProcessFile, processFile } from "../../services/fileUpload";
 import { debounce } from "../../utils/helpers";
-import type { SpaceFile } from "../../types/space";
+import type { NotebookFile } from "../../types/notebook";
 import toast from "react-hot-toast";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface NotesPanelProps {
-  spaceId: string;
+  notebookId: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onFileCreated?: (newFile: SpaceFile) => void;
+  onFileCreated?: (newFile: NotebookFile) => void;
   onFileProcessingUpdate?: (fileId: string, isProcessing: boolean) => void;
 }
 
@@ -112,7 +112,7 @@ class EditorErrorBoundary extends Component<
 }
 
 export default function NotesPanel({
-  spaceId,
+  notebookId,
   isExpanded,
   onToggleExpand,
   onFileCreated,
@@ -125,8 +125,8 @@ export default function NotesPanel({
   const [isSaving, setIsSaving] = useState(false);
   const { supabaseUserId, getSupabaseClient, refreshSupabaseToken } =
     useSupabaseUser();
-  const [notesFiles, setNotesFiles] = useState<SpaceFile[]>([]);
-  const [currentNoteFile, setCurrentNoteFile] = useState<SpaceFile | null>(
+  const [notesFiles, setNotesFiles] = useState<NotebookFile[]>([]);
+  const [currentNoteFile, setCurrentNoteFile] = useState<NotebookFile | null>(
     null,
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -159,8 +159,8 @@ export default function NotesPanel({
 
   // Save editor content to storage (Supabase)
   const saveToStorage = useCallback(
-    debounce(async (content: Block[], noteFile: SpaceFile) => {
-      if (!spaceId || !supabaseUserId) return;
+    debounce(async (content: Block[], noteFile: NotebookFile) => {
+      if (!notebookId || !supabaseUserId) return;
 
       setIsSaving(true);
       setSaveError(null);
@@ -241,13 +241,13 @@ export default function NotesPanel({
 
         // Update the file size in database
         await supabase
-          .from("space_files")
+          .from("notebook_files")
           .update({ file_size: contentBlob.size })
           .eq("id", noteFile.id);
 
         // Ensure is_note is true
         await supabase
-          .from("space_files")
+          .from("notebook_files")
           .update({ is_note: true })
           .eq("id", noteFile.id);
 
@@ -261,13 +261,13 @@ export default function NotesPanel({
         setIsSaving(false);
       }
     }, 1000),
-    [spaceId, supabaseUserId, getSupabaseClient, refreshSupabaseToken],
+    [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken],
   );
 
   // Load content from storage (Supabase)
   const loadFromStorage = useCallback(
-    async (noteFile: SpaceFile) => {
-      if (!noteFile || !spaceId || !supabaseUserId) return undefined;
+    async (noteFile: NotebookFile) => {
+      if (!noteFile || !notebookId || !supabaseUserId) return undefined;
 
       try {
         let supabase = await getSupabaseClient();
@@ -321,12 +321,12 @@ export default function NotesPanel({
       // Return undefined if loading fails, which will create a new empty document
       return undefined;
     },
-    [spaceId, supabaseUserId, getSupabaseClient, refreshSupabaseToken],
+    [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken],
   );
 
   // Create a new note
   const createNewNote = useCallback(async () => {
-    if (!spaceId || !supabaseUserId) return;
+    if (!notebookId || !supabaseUserId) return;
     
     // Prevent multiple simultaneous note creations
     if (isCreatingDefaultNote.current) {
@@ -357,7 +357,7 @@ export default function NotesPanel({
       // Use uploadAndProcessFile instead of uploadFile directly
       const result = await uploadAndProcessFile(
         file,
-        spaceId,
+        notebookId,
         supabaseUserId,
         refreshSupabaseToken,
         getSupabaseClient,
@@ -421,11 +421,11 @@ export default function NotesPanel({
       // Reset the flag when done
       isCreatingDefaultNote.current = false;
     }
-  }, [spaceId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
+  }, [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
 
   // Create a default note if none exist
   const createDefaultNote = useCallback(async () => {
-    if (!spaceId || !supabaseUserId) return null;
+    if (!notebookId || !supabaseUserId) return null;
     
     // Check if we're already creating a default note
     if (isCreatingDefaultNote.current) {
@@ -457,7 +457,7 @@ export default function NotesPanel({
       // Use uploadAndProcessFile instead of uploadFile directly
       const result = await uploadAndProcessFile(
         file,
-        spaceId,
+        notebookId,
         supabaseUserId,
         refreshSupabaseToken,
         getSupabaseClient,
@@ -522,20 +522,20 @@ export default function NotesPanel({
     }
 
     return null;
-  }, [spaceId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
+  }, [notebookId, supabaseUserId, getSupabaseClient, refreshSupabaseToken, onFileCreated, onFileProcessingUpdate]);
 
   // Load notes files when component mounts
   useEffect(() => {
     const fetchNotesFiles = async () => {
-      if (!spaceId || !supabaseUserId) return;
+      if (!notebookId || !supabaseUserId) return;
 
       setIsLoading(true);
       try {
         const supabase = await getSupabaseClient();
         const { data: files, error } = await supabase
-          .from("space_files")
+          .from("notebook_files")
           .select("*")
-          .eq("space_id", spaceId)
+          .eq("notebook_id", notebookId)
           .eq("user_id", supabaseUserId)
           .eq("file_type", "application/json")
           .order("created_at", { ascending: false });
@@ -545,11 +545,11 @@ export default function NotesPanel({
         if (files && files.length > 0) {
           // Filter out any potentially corrupt entries
           const validFiles = files.filter(
-            (file: SpaceFile) =>
+            (file: NotebookFile) =>
               file.file_name &&
               file.file_name.endsWith(".json") &&
               file.file_path &&
-              file.file_path.includes(spaceId),
+              file.file_path.includes(notebookId),
           );
 
           setNotesFiles(validFiles);
@@ -591,7 +591,7 @@ export default function NotesPanel({
 
     fetchNotesFiles();
   }, [
-    spaceId,
+    notebookId,
     supabaseUserId,
     getSupabaseClient,
     loadFromStorage,
@@ -599,7 +599,7 @@ export default function NotesPanel({
 
   // Handle note selection from dropdown
   const selectNote = useCallback(
-    async (file: SpaceFile) => {
+    async (file: NotebookFile) => {
       setCurrentNoteFile(file);
       setCurrentNoteName(file.file_name.replace(".json", ""));
       setIsDropdownOpen(false);

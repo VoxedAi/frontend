@@ -1,22 +1,22 @@
 import { useState } from "react";
 
-interface CreateNotebookModalProps {
+interface CreateSpaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateNotebook: (title: string, description: string) => void;
+  onCreateSpace: (title: string, description: string) => void;
 }
 
-export default function CreateNotebookModal({
+export default function CreateSpaceModal({
   isOpen,
   onClose,
-  onCreateNotebook,
-}: CreateNotebookModalProps) {
+  onCreateSpace,
+}: CreateSpaceModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateNotebook(title, description);
+    onCreateSpace(title, description);
     setTitle("");
     setDescription("");
     onClose();
@@ -28,7 +28,7 @@ export default function CreateNotebookModal({
     <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl p-6 w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4 text-adaptive">
-          Create New Notebook
+          Create New Space
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">

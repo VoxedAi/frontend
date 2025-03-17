@@ -9,9 +9,9 @@ export * from "./SidebarUtils";
 
 // Export individual components
 export { default as SidebarHeader } from "./SidebarHeader";
-export { default as FolderView } from "./FolderView";
-export { default as NotebookView } from "./NotebookView";
-export { default as FolderItem } from "./FolderItem";
+export { default as WorkspaceView } from "./WorkspaceView";
+export { default as SpaceView } from "./SpaceView";
+export { default as WorkspaceItem } from "./WorkspaceItem";
 export { default as FileListItem } from "./FileListItem";
 export { default as ChatSessionItem } from "./ChatSessionItem";
 export { default as FilesTabContent } from "./FilesTabContent";

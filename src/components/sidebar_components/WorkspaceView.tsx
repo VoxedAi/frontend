@@ -1,40 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { FolderViewProps } from "./SidebarTypes";
-import FolderItem from "./FolderItem";
+import { WorkspaceViewProps } from "./SidebarTypes";
+import WorkspaceItem from "./WorkspaceItem";
 import {
-  getUserFoldersHierarchy,
-  getUnorganizedNotebooks,
-  createFolder,
-  deleteFolder,
-  isParentFolder,
-} from "../../services/folderService";
-import type { Folder, Notebook } from "../../types/notebook";
+  getUserWorkspacesHierarchy,
+  getUnorganizedSpaces,
+  createWorkspace,
+  deleteWorkspace,
+  isParentWorkspace,
+} from "../../services/workspaceService";
+import type { Workspace, Space } from "../../types/space";
 
-const FolderView: React.FC<FolderViewProps> = ({
+const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   userId,
   isMobile,
   isCollapsed,
-  selectedFolderId,
-  onSelectFolder,
-  onFoldersUpdated,
+  selectedWorkspaceId,
+  onSelectWorkspace,
+  onWorkspacesUpdated,
 }) => {
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [_unorganizedNotebooks, setUnorganizedNotebooks] = useState<Notebook[]>(
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [_unorganizedSpaces, setUnorganizedSpaces] = useState<Space[]>(
     [],
   );
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     new Set(),
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [parentFolderId, setParentFolderId] = useState<string | null>(null);
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const [parentWorkspaceId, setParentWorkspaceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [folderToDelete, setFolderToDelete] = useState<{
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<{
     id: string;
     isParent: boolean;
   } | null>(null);
-  const [_allFoldersList, setAllFoldersList] = useState<Folder[]>([]);
+  const [_allWorkspacesList, setAllWorkspacesList] = useState<Workspace[]>([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -42,41 +42,41 @@ const FolderView: React.FC<FolderViewProps> = ({
     async function loadData() {
       setIsLoading(true);
       try {
-        // Load folder hierarchy
-        const foldersResult = await getUserFoldersHierarchy(userId);
-        if (foldersResult.success && foldersResult.data) {
-          setFolders(foldersResult.data);
+        // Load workspace hierarchy
+        const workspacesResult = await getUserWorkspacesHierarchy(userId);
+        if (workspacesResult.success && workspacesResult.data) {
+          setWorkspaces(workspacesResult.data);
 
-          // Create a flat list of all folders for collapsed view
-          const flatList: Folder[] = [];
-          const flattenFolders = (folderList: Folder[]) => {
-            folderList.forEach((folder) => {
-              flatList.push(folder);
-              if (folder.children && folder.children.length > 0) {
-                flattenFolders(folder.children);
+          // Create a flat list of all workspaces for collapsed view
+          const flatList: Workspace[] = [];
+          const flattenWorkspaces = (workspaceList: Workspace[]) => {
+            workspaceList.forEach((workspace) => {
+              flatList.push(workspace);
+              if (workspace.children && workspace.children.length > 0) {
+                flattenWorkspaces(workspace.children);
               }
             });
           };
 
-          flattenFolders(foldersResult.data);
-          setAllFoldersList(flatList);
+          flattenWorkspaces(workspacesResult.data);
+          setAllWorkspacesList(flatList);
 
-          // Initially expand first level folders for better UX
+          // Initially expand first level workspaces for better UX
           const initialExpanded = new Set<string>();
-          foldersResult.data.forEach((folder) => {
-            initialExpanded.add(folder.id);
+          workspacesResult.data.forEach((workspace) => {
+            initialExpanded.add(workspace.id);
           });
-          setExpandedFolders(initialExpanded);
+          setExpandedWorkspaces(initialExpanded);
         }
 
-        // Load unorganized notebooks
-        const unorganizedResult = await getUnorganizedNotebooks(userId);
+        // Load unorganized spaces
+        const unorganizedResult = await getUnorganizedSpaces(userId);
         if (unorganizedResult.success && unorganizedResult.data) {
-          setUnorganizedNotebooks(unorganizedResult.data);
+          setUnorganizedSpaces(unorganizedResult.data);
         }
       } catch (err) {
         console.error("Error loading sidebar data:", err);
-        setError("Failed to load folders");
+        setError("Failed to load workspaces");
       } finally {
         setIsLoading(false);
       }
@@ -85,150 +85,150 @@ const FolderView: React.FC<FolderViewProps> = ({
     loadData();
   }, [userId]);
 
-  const handleToggleFolder = (folderId: string, e: React.MouseEvent) => {
+  const handleToggleWorkspace = (workspaceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setExpandedFolders((prev) => {
+    setExpandedWorkspaces((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(folderId)) {
-        newSet.delete(folderId);
+      if (newSet.has(workspaceId)) {
+        newSet.delete(workspaceId);
       } else {
-        newSet.add(folderId);
+        newSet.add(workspaceId);
       }
       return newSet;
     });
   };
 
-  const handleSelectFolder = (folderId: string | null) => {
-    onSelectFolder(folderId);
+  const handleSelectWorkspace = (workspaceId: string | null) => {
+    onSelectWorkspace(workspaceId);
   };
 
-  const handleCreateNewFolder = async (e: React.FormEvent) => {
+  const handleCreateNewWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFolderName.trim()) return;
+    if (!newWorkspaceName.trim()) return;
 
     try {
-      const result = await createFolder(
+      const result = await createWorkspace(
         userId,
-        newFolderName.trim(),
+        newWorkspaceName.trim(),
         undefined,
-        parentFolderId || undefined,
+        parentWorkspaceId || undefined,
       );
 
       if (result.success && result.data) {
-        // Refresh folder list
-        const foldersResult = await getUserFoldersHierarchy(userId);
-        if (foldersResult.success && foldersResult.data) {
-          setFolders(foldersResult.data);
+        // Refresh workspace list
+        const workspacesResult = await getUserWorkspacesHierarchy(userId);
+        if (workspacesResult.success && workspacesResult.data) {
+          setWorkspaces(workspacesResult.data);
 
           // Update flat list for collapsed view
-          const flatList: Folder[] = [];
-          const flattenFolders = (folderList: Folder[]) => {
-            folderList.forEach((folder) => {
-              flatList.push(folder);
-              if (folder.children && folder.children.length > 0) {
-                flattenFolders(folder.children);
+          const flatList: Workspace[] = [];
+          const flattenWorkspaces = (workspaceList: Workspace[]) => {
+            workspaceList.forEach((workspace) => {
+              flatList.push(workspace);
+              if (workspace.children && workspace.children.length > 0) {
+                flattenWorkspaces(workspace.children);
               }
             });
           };
 
-          flattenFolders(foldersResult.data);
-          setAllFoldersList(flatList);
+          flattenWorkspaces(workspacesResult.data);
+          setAllWorkspacesList(flatList);
 
-          // Expand the parent folder if this was a subfolder
-          if (parentFolderId) {
-            setExpandedFolders((prev) => {
+          // Expand the parent workspace if this was a subworkspace
+          if (parentWorkspaceId) {
+            setExpandedWorkspaces((prev) => {
               const newSet = new Set(prev);
-              newSet.add(parentFolderId);
+              newSet.add(parentWorkspaceId);
               return newSet;
             });
           }
         }
 
         // Reset form
-        setNewFolderName("");
-        setIsCreatingFolder(false);
-        setParentFolderId(null);
+        setNewWorkspaceName("");
+        setIsCreatingWorkspace(false);
+        setParentWorkspaceId(null);
         setError(null);
 
-        // Notify parent component that folders have been updated
-        if (onFoldersUpdated) {
-          onFoldersUpdated();
+        // Notify parent component that workspaces have been updated
+        if (onWorkspacesUpdated) {
+          onWorkspacesUpdated();
         }
       } else {
-        setError("Failed to create folder");
+        setError("Failed to create workspace");
       }
     } catch (err) {
-      console.error("Error creating folder:", err);
-      setError("An error occurred while creating the folder");
+      console.error("Error creating workspace:", err);
+      setError("An error occurred while creating the workspace");
     }
   };
 
-  const handleAddSubfolder = (parentId: string, e: React.MouseEvent) => {
+  const handleAddSubworkspace = (parentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setParentFolderId(parentId);
-    setIsCreatingFolder(true);
+    setParentWorkspaceId(parentId);
+    setIsCreatingWorkspace(true);
   };
 
-  const handleDeleteClick = async (folderId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = async (workspaceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Check if this is a parent folder
-    const isParent = await isParentFolder(folderId);
+    // Check if this is a parent workspace
+    const isParent = await isParentWorkspace(workspaceId);
 
-    // Set the folder to delete with its parent status
-    setFolderToDelete({ id: folderId, isParent });
+    // Set the workspace to delete with its parent status
+    setWorkspaceToDelete({ id: workspaceId, isParent });
   };
 
-  const confirmDeleteFolder = async () => {
-    if (!folderToDelete) return;
+  const confirmDeleteWorkspace = async () => {
+    if (!workspaceToDelete) return;
 
     try {
-      const result = await deleteFolder(folderToDelete.id);
+      const result = await deleteWorkspace(workspaceToDelete.id);
 
       if (result.success) {
-        // If the deleted folder was selected, reset selection
-        if (selectedFolderId === folderToDelete.id) {
-          onSelectFolder(null);
+        // If the deleted workspace was selected, reset selection
+        if (selectedWorkspaceId === workspaceToDelete.id) {
+          onSelectWorkspace(null);
         }
 
-        // Refresh folder list
-        const foldersResult = await getUserFoldersHierarchy(userId);
-        if (foldersResult.success && foldersResult.data) {
-          setFolders(foldersResult.data);
+        // Refresh workspace list
+        const workspacesResult = await getUserWorkspacesHierarchy(userId);
+        if (workspacesResult.success && workspacesResult.data) {
+          setWorkspaces(workspacesResult.data);
 
           // Update flat list for collapsed view
-          const flatList: Folder[] = [];
-          const flattenFolders = (folderList: Folder[]) => {
-            folderList.forEach((folder) => {
-              flatList.push(folder);
-              if (folder.children && folder.children.length > 0) {
-                flattenFolders(folder.children);
+          const flatList: Workspace[] = [];
+          const flattenWorkspaces = (workspaceList: Workspace[]) => {
+            workspaceList.forEach((workspace) => {
+              flatList.push(workspace);
+              if (workspace.children && workspace.children.length > 0) {
+                flattenWorkspaces(workspace.children);
               }
             });
           };
 
-          flattenFolders(foldersResult.data);
-          setAllFoldersList(flatList);
+          flattenWorkspaces(workspacesResult.data);
+          setAllWorkspacesList(flatList);
         }
 
         // Reset state
-        setFolderToDelete(null);
+        setWorkspaceToDelete(null);
 
-        // Notify parent component that folders have been updated
-        if (onFoldersUpdated) {
-          onFoldersUpdated();
+        // Notify parent component that workspaces have been updated
+        if (onWorkspacesUpdated) {
+          onWorkspacesUpdated();
         }
       } else {
-        setError("Failed to delete folder");
+        setError("Failed to delete workspace");
       }
     } catch (err) {
-      console.error("Error deleting folder:", err);
-      setError("An error occurred while deleting the folder");
+      console.error("Error deleting workspace:", err);
+      setError("An error occurred while deleting the workspace");
     }
   };
 
-  const cancelDeleteFolder = () => {
-    setFolderToDelete(null);
+  const cancelDeleteWorkspace = () => {
+    setWorkspaceToDelete(null);
   };
 
   return (
@@ -243,8 +243,8 @@ const FolderView: React.FC<FolderViewProps> = ({
             <div className="text-red-500 text-sm p-2 mb-2">{error}</div>
           )}
 
-          {/* Delete folder confirmation modal */}
-          {folderToDelete && !isCollapsed && (
+          {/* Delete workspace confirmation modal */}
+          {workspaceToDelete && !isCollapsed && (
             <div className="fixed inset-0 bg-overlay backdrop-blur-sm flex items-center justify-center z-50">
               <div
                 className={`bg-card rounded-lg p-6 ${isMobile ? "w-[90%]" : "max-w-sm"} mx-auto shadow-xl transition-all duration-300 ease-in-out animate-fadeIn`}
@@ -253,19 +253,19 @@ const FolderView: React.FC<FolderViewProps> = ({
                   Confirm Deletion
                 </h3>
                 <p className="text-muted mb-6">
-                  {folderToDelete.isParent
-                    ? "This folder contains subfolders and/or notebooks. Deleting it will also delete all its contents. Are you sure you want to continue?"
-                    : "Are you sure you want to delete this folder?"}
+                  {workspaceToDelete.isParent
+                    ? "This workspace contains subworkspaces and/or spaces. Deleting it will also delete all its contents. Are you sure you want to continue?"
+                    : "Are you sure you want to delete this workspace?"}
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button
-                    onClick={cancelDeleteFolder}
+                    onClick={cancelDeleteWorkspace}
                     className="px-4 py-2 text-sm font-medium text-adaptive bg-hover hover:bg-active dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md cursor-pointer transition-all duration-200"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={confirmDeleteFolder}
+                    onClick={confirmDeleteWorkspace}
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md cursor-pointer transition-all duration-200"
                   >
                     Delete
@@ -278,14 +278,14 @@ const FolderView: React.FC<FolderViewProps> = ({
           {isCollapsed ? null : ( // We don't need to render anything in collapsed state since we now use the floating menu
             // Render expanded view with hierarchy
             <>
-              {/* All Notebooks (unfiltered) option */}
+              {/* All Spaces (unfiltered) option */}
               <div
                 className={`flex items-center py-1.5 px-3 my-1.5 rounded-md cursor-pointer transition-all duration-200 ${
-                  selectedFolderId === null
+                  selectedWorkspaceId === null
                     ? "bg-black text-white dark:bg-white dark:text-black"
                     : "hover:bg-hover"
                 }`}
-                onClick={() => handleSelectFolder(null)}
+                onClick={() => handleSelectWorkspace(null)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -301,17 +301,17 @@ const FolderView: React.FC<FolderViewProps> = ({
                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                   />
                 </svg>
-                <span>All Notebooks</span>
+                <span>All Spaces</span>
               </div>
 
-              {/* Unorganized notebooks */}
+              {/* Unorganized spaces */}
               <div
                 className={`flex items-center py-1.5 px-3 my-1.5 rounded-md cursor-pointer transition-all duration-200 ${
-                  selectedFolderId === "unorganized"
+                  selectedWorkspaceId === "unorganized"
                     ? "bg-black text-white dark:bg-white dark:text-black"
                     : "hover:bg-hover"
                 }`}
-                onClick={() => handleSelectFolder("unorganized")}
+                onClick={() => handleSelectWorkspace("unorganized")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -330,31 +330,31 @@ const FolderView: React.FC<FolderViewProps> = ({
                 <span>Unorganized</span>
               </div>
 
-              {/* Folder list */}
+              {/* Workspace list */}
               <div className="mt-2">
-                {folders.map((folder) => (
-                  <FolderItem
-                    key={folder.id}
-                    folder={folder}
+                {workspaces.map((workspace) => (
+                  <WorkspaceItem
+                    key={workspace.id}
+                    workspace={workspace}
                     depth={0}
                     isCollapsed={isCollapsed}
                     isMobile={isMobile}
-                    isSelected={selectedFolderId === folder.id}
-                    expandedFolders={expandedFolders}
-                    handleToggleFolder={handleToggleFolder}
-                    handleSelectFolder={handleSelectFolder}
-                    handleAddSubfolder={handleAddSubfolder}
+                    isSelected={selectedWorkspaceId === workspace.id}
+                    expandedWorkspaces={expandedWorkspaces}
+                    handleToggleWorkspace={handleToggleWorkspace}
+                    handleSelectWorkspace={handleSelectWorkspace}
+                    handleAddSubworkspace={handleAddSubworkspace}
                     handleDeleteClick={handleDeleteClick}
                   />
                 ))}
               </div>
 
-              {/* Create new folder button */}
-              {!isCreatingFolder && (
+              {/* Create new workspace button */}
+              {!isCreatingWorkspace && (
                 <button
                   onClick={() => {
-                    setIsCreatingFolder(true);
-                    setParentFolderId(null);
+                    setIsCreatingWorkspace(true);
+                    setParentWorkspaceId(null);
                   }}
                   className="flex items-center w-full py-2 px-3 mt-3 text-sm text-adaptive dark:text-gray-400 hover:bg-hover rounded-md cursor-pointer transition-all duration-200"
                 >
@@ -372,34 +372,34 @@ const FolderView: React.FC<FolderViewProps> = ({
                       d="M12 4v16m8-8H4"
                     />
                   </svg>
-                  New Folder
+                  New Workspace
                 </button>
               )}
 
-              {/* Create folder modal */}
-              {isCreatingFolder && (
+              {/* Create workspace modal */}
+              {isCreatingWorkspace && (
                 <div className="fixed inset-0 bg-overlay backdrop-blur-sm flex items-center justify-center z-50">
                   <div
                     className={`bg-card rounded-lg p-6 ${isMobile ? "w-[90%]" : "max-w-sm"} mx-auto shadow-xl transition-all duration-300 ease-in-out animate-fadeIn`}
                   >
                     <h3 className="text-lg font-medium text-adaptive mb-4">
-                      Create New Folder
+                      Create New Workspace
                     </h3>
-                    <form onSubmit={handleCreateNewFolder}>
+                    <form onSubmit={handleCreateNewWorkspace}>
                       <div className="mb-4">
                         <label
-                          htmlFor="folderName"
+                          htmlFor="workspaceName"
                           className="block text-sm font-medium text-muted mb-2"
                         >
-                          Folder Name
+                          Workspace Name
                         </label>
                         <input
                           type="text"
-                          id="folderName"
-                          value={newFolderName}
-                          onChange={(e) => setNewFolderName(e.target.value)}
+                          id="workspaceName"
+                          value={newWorkspaceName}
+                          onChange={(e) => setNewWorkspaceName(e.target.value)}
                           className="w-full text-sm px-3 py-2 border border-none rounded-md bg-input text-adaptive focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all duration-200"
-                          placeholder="Enter folder name"
+                          placeholder="Enter workspace name"
                           required
                         />
                       </div>
@@ -407,9 +407,9 @@ const FolderView: React.FC<FolderViewProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setIsCreatingFolder(false);
-                            setNewFolderName("");
-                            setParentFolderId(null);
+                            setIsCreatingWorkspace(false);
+                            setNewWorkspaceName("");
+                            setParentWorkspaceId(null);
                           }}
                           className="px-4 py-2 text-sm font-medium text-adaptive bg-hover hover:bg-active dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md cursor-pointer transition-all duration-200"
                         >
@@ -434,4 +434,4 @@ const FolderView: React.FC<FolderViewProps> = ({
   );
 };
 
-export default FolderView;
+export default WorkspaceView;

@@ -1,22 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSupabaseUser } from "../../contexts/UserContext";
-import { getNotebook } from "../../services/notebookService";
+import { getSpace } from "../../services/spaceService";
 import {
-  getNotebookFiles,
+  getSpaceFiles,
   uploadFile,
   deleteFile,
   processFile,
 } from "../../services/fileUpload";
 import {
   createChatSession,
-  getNotebookChatSessions,
+  getSpaceChatSessions,
   sendChatMessage,
   getChatMessages,
   deleteChatSession,
-} from "../../services/notebookService";
+} from "../../services/spaceService";
 import { streamChatWithGemini } from "../../services/geminiService";
-import type { Notebook, NotebookFile } from "../../types/notebook";
+import type { Space, SpaceFile } from "../../types/space";
 import type { ChatSession, ChatMessage } from "../../types/chat";
 // import Header from '../../components/Header';
 import Sidebar from "../../components/Sidebar";
@@ -29,22 +29,22 @@ import NotesPanel from "../../components/note/NotesPanel";
 import Sandbox from "../../components/Sandbox";
 import { useMobile } from "../../contexts/MobileContext";
 
-// Extended NotebookFile type to include processing status
-interface ExtendedNotebookFile extends NotebookFile {
+// Extended SpaceFile type to include processing status
+interface ExtendedSpaceFile extends SpaceFile {
   isProcessing?: boolean;
   isDeletingFile?: boolean;
 }
 
-export default function NotebookDetailPage() {
-  const { id: notebookId } = useParams<{ id: string }>();
+export default function SpaceDetailPage() {
+  const { id: spaceId } = useParams<{ id: string }>();
   const {
     supabaseUserId,
     isLoading: isUserLoading,
     getSupabaseClient,
     refreshSupabaseToken,
   } = useSupabaseUser();
-  const [notebook, setNotebook] = useState<Notebook | null>(null);
-  const [files, setFiles] = useState<ExtendedNotebookFile[]>([]);
+  const [space, setSpace] = useState<Space | null>(null);
+  const [files, setFiles] = useState<ExtendedSpaceFile[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatSession, setCurrentChatSession] =
     useState<ChatSession | null>(null);
@@ -77,7 +77,7 @@ export default function NotebookDetailPage() {
   const [noteToggledFiles, setNoteToggledFiles] = useState<Set<string>>(new Set());
 
   // Function to add a new file to the files state
-  const addNewFile = useCallback((newFile: ExtendedNotebookFile) => {
+  const addNewFile = useCallback((newFile: ExtendedSpaceFile) => {
     setFiles(prevFiles => [newFile, ...prevFiles]);
   }, []);
 
@@ -110,40 +110,40 @@ export default function NotebookDetailPage() {
     }
   }, [isMobile]);
 
-  // Fetch notebook data
+  // Fetch space data
   useEffect(() => {
-    async function fetchNotebookData() {
-      if (!notebookId) {
-        console.error("No notebookId provided");
+    async function fetchSpaceData() {
+      if (!spaceId) {
+        console.error("No spaceId provided");
         return;
       }
 
-      console.log("Fetching notebook with ID:", notebookId);
+      console.log("Fetching space with ID:", spaceId);
       setIsLoading(true);
       try {
-        const result = await getNotebook(notebookId);
-        console.log("Notebook fetch result:", result);
+        const result = await getSpace(spaceId);
+        console.log("Space fetch result:", result);
         if (result.success && result.data) {
-          setNotebook(result.data);
-          console.log("Notebook data set successfully:", result.data);
+          setSpace(result.data);
+          console.log("Space data set successfully:", result.data);
         } else {
-          console.error("Failed to load notebook", result.error);
-          setError("Failed to load notebook");
+          console.error("Failed to load space", result.error);
+          setError("Failed to load space");
         }
       } catch (err) {
-        console.error("Error fetching notebook:", err);
-        setError("An error occurred while loading the notebook");
+        console.error("Error fetching space:", err);
+        setError("An error occurred while loading the space");
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchNotebookData();
-  }, [notebookId]);
+    fetchSpaceData();
+  }, [spaceId]);
 
-  // Fetch notebook files
+  // Fetch space files
   useEffect(() => {
-    if (!notebookId) return;
+    if (!spaceId) return;
 
     async function fetchFiles() {
       // Only set loading state if we don't already have files (initial load)
@@ -153,8 +153,8 @@ export default function NotebookDetailPage() {
       }
 
       try {
-        // Make sure notebookId is not undefined
-        if (notebookId) {
+        // Make sure spaceId is not undefined
+        if (spaceId) {
           // Get authenticated Supabase client
           const authClient = await getSupabaseClient();
 
@@ -164,7 +164,7 @@ export default function NotebookDetailPage() {
             return;
           }
 
-          const result = await getNotebookFiles(notebookId, authClient);
+          const result = await getSpaceFiles(spaceId, authClient);
           if (result.success && result.data) {
             setFiles(result.data);
           } else {
@@ -182,17 +182,17 @@ export default function NotebookDetailPage() {
     }
 
     fetchFiles();
-  }, [notebookId, getSupabaseClient]);
+  }, [spaceId, getSupabaseClient]);
 
   // Fetch chat sessions
   useEffect(() => {
-    if (!notebookId) return;
+    if (!spaceId) return;
 
     async function fetchChatSessions() {
       try {
-        // Make sure notebookId is not undefined
-        if (notebookId) {
-          const result = await getNotebookChatSessions(notebookId);
+        // Make sure spaceId is not undefined
+        if (spaceId) {
+          const result = await getSpaceChatSessions(spaceId);
           if (result.success && result.data) {
             setChatSessions(result.data);
 
@@ -208,7 +208,7 @@ export default function NotebookDetailPage() {
     }
 
     fetchChatSessions();
-  }, [notebookId]);
+  }, [spaceId]);
 
   // Fetch messages when current chat session changes
   useEffect(() => {
@@ -255,7 +255,7 @@ export default function NotebookDetailPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (
-      !notebookId ||
+      !spaceId ||
       !supabaseUserId ||
       !e.target.files ||
       e.target.files.length === 0
@@ -318,7 +318,7 @@ export default function NotebookDetailPage() {
         const result = await uploadFile(
           file,
           false,
-          notebookId,
+          spaceId,
           supabaseUserId,
           authClient,
           retryCount
@@ -365,7 +365,7 @@ export default function NotebookDetailPage() {
 
       if (result.success && result.data) {
         // Add the file to the files list with processing status
-        const newFile: ExtendedNotebookFile = {
+        const newFile: ExtendedSpaceFile = {
           ...result.data,
           isProcessing: result.isProcessing || false,
         };
@@ -573,11 +573,11 @@ export default function NotebookDetailPage() {
   };
 
   const handleCreateSession = async () => {
-    if (!notebookId || !supabaseUserId) return;
+    if (!spaceId || !supabaseUserId) return;
 
     try {
       const result = await createChatSession(
-        notebookId,
+        spaceId,
         supabaseUserId,
         "New Chat",
       );
@@ -610,7 +610,7 @@ export default function NotebookDetailPage() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !notebookId ||
+      !spaceId ||
       !supabaseUserId ||
       !currentChatSession ||
       !inputMessage.trim()
@@ -625,7 +625,7 @@ export default function NotebookDetailPage() {
       const tempUserMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
         chat_session_id: currentChatSession.id,
-        notebook_id: notebookId,
+        space_id: spaceId,
         user_id: supabaseUserId,
         content: messageText,
         is_user: true,
@@ -643,7 +643,7 @@ export default function NotebookDetailPage() {
       // Send user message to backend
       const userMessageResult = await sendChatMessage(
         currentChatSession.id,
-        notebookId,
+        spaceId,
         supabaseUserId,
         messageText,
         true,
@@ -707,7 +707,7 @@ export default function NotebookDetailPage() {
         // After streaming is complete, save the AI message to the database
         const aiMessageResult = await sendChatMessage(
           currentChatSession.id,
-          notebookId,
+          spaceId,
           supabaseUserId,
           finalResponse,
           false,
@@ -892,19 +892,19 @@ export default function NotebookDetailPage() {
     );
   }
 
-  if (!notebook) {
+  if (!space) {
     return (
       <div className="flex flex-col min-h-screen">
         {/* <Header /> */}
         <div className="container mx-auto px-4 py-8">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            Notebook not found or you don't have access to it.
+            Space not found or you don't have access to it.
           </div>
           <Link
-            to="/notebooks"
+            to="/spaces"
             className="text-black dark:text-white hover:underline"
           >
-            &larr; Back to Notebooks
+            &larr; Back to Spaces
           </Link>
         </div>
       </div>
@@ -917,9 +917,9 @@ export default function NotebookDetailPage() {
         userId={supabaseUserId || ""}
         isCollapsed={!sidebarExpanded}
         onToggleCollapse={toggleSidebar}
-        selectedFolderId={null}
-        onSelectFolder={() => {}}
-        mode="notebook"
+        selectedWorkspaceId={null}
+        onSelectWorkspace={() => {}}
+        mode="space"
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         files={files}
@@ -932,7 +932,7 @@ export default function NotebookDetailPage() {
         confirmDeleteSession={confirmDeleteSession}
         setCurrentChatSession={setCurrentChatSession}
         handleFileUpload={handleFileUpload}
-        notebookName={notebook?.title || ""}
+        spaceName={space?.title || ""}
         uploadingFiles={uploadingFiles}
         toggleNotesPanel={toggleNotesPanel}
         isNotesPanelExpanded={isNotesPanelExpanded}
@@ -965,7 +965,7 @@ export default function NotebookDetailPage() {
             rightPanel={
               isNotesPanelExpanded ? (
                 <NotesPanel
-                  notebookId={notebookId || ""}
+                  spaceId={spaceId || ""}
                   isExpanded={isNotesPanelExpanded}
                   onToggleExpand={toggleNotesPanel}
                   onFileCreated={addNewFile}

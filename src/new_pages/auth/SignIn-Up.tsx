@@ -177,12 +177,12 @@ export default function SignInUp() {
                 </div>
 
                 <div className="flex gap-4 justify-center">
-                    <SignInButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/notebooks"}>
+                    <SignInButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/spaces"}>
                         <button className="bg-gradient-to-br from-sky-400 to-indigo-400 color-primary border-none py-3 px-6 rounded-lg font-semibold cursor-pointer transition duration-200 hover:translate-y-[-2px] hover:shadow-lg shadow-adaptive no-underline">
                             Sign In
                         </button>
                     </SignInButton>
-                    <SignUpButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/notebooks"}>
+                    <SignUpButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/spaces"}>
                         <button className="bg-secondary color-primary border border-adaptive py-3 px-6 rounded-lg font-semibold cursor-pointer transition-all duration-200 hover-bg-adaptive hover:translate-y-[-2px] no-underline">
                             Sign Up
                         </button>

@@ -100,6 +100,24 @@ const Space = () => {
     });
   };
 
+  // Function to open a specific note
+  const openNote = (noteId: string) => {
+    // Update the layout state in a single call to avoid race conditions
+    setLayout({
+      selectedView: 'notes',
+      selectedNoteId: noteId
+    });
+  };
+
+  // Function to show notes list without a selected note
+  const showNotesList = () => {
+    // Update the layout state to show notes view but clear the selected note
+    setLayout({
+      selectedView: 'notes',
+      selectedNoteId: null
+    });
+  };
+
   // Ensure view mode matches URL state when a note is selected
   useEffect(() => {
     if (selectedNoteId && selectedView !== 'notes') {
@@ -279,7 +297,7 @@ const Space = () => {
               ...result.data,
               visible: true,
               isProcessing: Boolean(result.isProcessing)
-            },
+            } as ExtendedFile,
             ...prev
           ]);
           
@@ -336,7 +354,7 @@ const Space = () => {
             ...result.data,
             visible: true,
             isProcessing: Boolean(result.isProcessing)
-          },
+          } as ExtendedFile,
           ...prev
         ]);
         
@@ -521,7 +539,7 @@ const Space = () => {
             ...newNoteFile,
             visible: true,
             isProcessing: false
-          },
+          } as ExtendedFile,
           ...prev
         ]);
         
@@ -664,6 +682,8 @@ const Space = () => {
           setShowSandbox={setShowSandbox}
           fileInputRef={fileInputRef}
           handleFileUpload={handleFileUpload}
+          openNote={openNote}
+          showNotesList={showNotesList}
         />
       )}
 

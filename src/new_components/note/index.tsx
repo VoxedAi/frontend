@@ -40,24 +40,23 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
 
   // Update the selected note when the noteId prop changes
   useEffect(() => {
-    if (noteId) {
-      setSelectedNote(noteId);
-      
-      // If notes are already loaded, try to find the note
-      if (notes.length > 0) {
-        const noteFile = notes.find(note => note.id === noteId);
-        if (noteFile) {
-          loadNoteContent(noteFile).then(content => {
-            if (content) {
-              setSelectedNoteContent(content);
-            }
-          });
-        } else {
-          console.log(`Note with ID ${noteId} not found in notes list, waiting for notes to load...`);
-        }
+    // Handle both setting and clearing the selected note
+    setSelectedNote(noteId || null);
+    
+    // If a note is selected and notes are loaded, load its content
+    if (noteId && notes.length > 0) {
+      const noteFile = notes.find(note => note.id === noteId);
+      if (noteFile) {
+        loadNoteContent(noteFile).then(content => {
+          if (content) {
+            setSelectedNoteContent(content);
+          }
+        });
       } else {
-        console.log(`Notes not loaded yet, will try again after notes load...`);
+        console.log(`Note with ID ${noteId} not found in notes list, waiting for notes to load...`);
       }
+    } else if (noteId) {
+      console.log(`Notes not loaded yet, will try again after notes load...`);
     }
   }, [noteId, notes]);
 

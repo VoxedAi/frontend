@@ -172,12 +172,12 @@ The new UI has a notes list but it uses fake data. Don't worry about note editin
 ## Phase 1 Cleanup
 
 - [x] Move sidebar code to Sidebar.tsx
-- [ ] Routing for notes: notes-list, note/:id (ensure sidebar uses routes aswell)
-- [ ] Update create/edit modal
-- [ ] Differentiate notes buttons 3 subtasks
+- [x] Routing for notes: notes-list, note/:id (ensure sidebar uses routes aswell)
+- [x] Differentiate notes buttons 3 subtasks
     - [x] Make the dropdown button not propagate and separate opening dropdown and opening notes component
-    - [ ] Individual note buttons need to open the notes themselves
-    - [ ] New note button in sidebar needs to pull up note creation modal (from note.tsx)
+    - [x] Individual note buttons need to open the notes themselves
+- [ ] Update create/edit modal
+- [ ] New note button in sidebar needs to pull up note creation modal (from note.tsx)
 - [ ] Note editing modal (edit button needs to work on list cards). Just use the existing note creation modal and pre-populate the details
 
 

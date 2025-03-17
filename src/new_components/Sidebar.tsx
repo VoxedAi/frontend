@@ -52,6 +52,8 @@ interface SidebarProps {
   setShowSandbox: (show: boolean) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  openNote?: (noteId: string) => void;
+  showNotesList?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -75,7 +77,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   setShowNote,
   setShowSandbox,
   fileInputRef,
-  handleFileUpload
+  handleFileUpload,
+  openNote,
+  showNotesList
 }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -164,9 +168,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div 
               className="flex items-center flex-1"
               onClick={() => {
-                setShowNote(true);
-                setShowChat(false);
-                setShowSandbox(false);
+                if (showNotesList) {
+                  // Use the dedicated function to show notes list
+                  showNotesList();
+                } else if (openNote) {
+                  // Clear the selected note but show notes view
+                  setSelectedNote(null);
+                  setShowNote(true);
+                } else {
+                  setShowNote(true);
+                  setShowChat(false);
+                  setShowSandbox(false);
+                }
               }}
             >
               <FileText size={16} className="text-gray-500 mr-2" />
@@ -232,10 +245,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                           : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                       onClick={() => {
-                        setSelectedNote(note.id);
-                        setShowNote(true);
-                        setShowChat(false);
-                        setShowSandbox(false);
+                        if (openNote) {
+                          openNote(note.id);
+                        } else {
+                          setSelectedNote(note.id);
+                          setShowNote(true);
+                          setShowChat(false);
+                          setShowSandbox(false);
+                        }
                       }}
                     >
                       <div className="flex items-center overflow-hidden">

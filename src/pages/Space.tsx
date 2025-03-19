@@ -34,6 +34,7 @@ import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import { useLayoutState } from '../hooks';
 import NoteModal from '../components/NoteModal';
+import ResizablePanel from '../components/ResizablePanel';
 
 // Extended file type with visibility state
 interface ExtendedFile extends SpaceFile {
@@ -709,30 +710,30 @@ const Space = () => {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ease-in-out`}>
+      <div className={`flex-1 transition-all duration-300 ease-in-out h-full`}>
         {showChat && !showNote && <SimplifiedChatInterface />}
         {showNote && !showChat && (
-            <div className="flex w-full h-full bg-white dark:bg-gray-900">
-                <div className="w-7/10">
+            <ResizablePanel defaultRatio={0.7}>
+                <div className="h-full py-2">
                     <Note 
                       noteId={safeSelectedNoteId} 
                       onNoteSelect={setSelectedNote} 
                     />
                 </div>
-                <div className="w-3/10">
+                <div className="h-full">
                     <ChatInterface />
                 </div>
-            </div>
+            </ResizablePanel>
         )}
         {!showNote && !showChat && showSandbox && (
-            <div className="flex w-full h-full bg-white dark:bg-gray-900">
-                <div className="w-7/10">
+            <ResizablePanel defaultRatio={0.7}>
+                <div className="h-full py-2">
                     <Sandbox />
                 </div>
-                <div className="w-3/10">
+                <div className="h-full">
                     <ChatInterface />
                 </div>
-            </div>
+            </ResizablePanel>
         )}
       </div>
 

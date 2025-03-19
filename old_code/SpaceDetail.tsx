@@ -1,33 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useSupabaseUser } from "../../contexts/UserContext";
-import { getSpace } from "../../services/spaceService";
+import { useSupabaseUser } from "../src/contexts/UserContext";
+import { getSpace } from "../src/services/spaceService";
 import {
   getSpaceFiles,
   uploadFile,
   deleteFile,
   processFile,
-} from "../../services/fileUpload";
+} from "../src/services/fileUpload";
 import {
   createChatSession,
   getSpaceChatSessions,
   sendChatMessage,
   getChatMessages,
   deleteChatSession,
-} from "../../services/spaceService";
-import { streamChatWithGemini } from "../../services/geminiService";
-import type { Space, SpaceFile } from "../../types/space";
-import type { ChatSession, ChatMessage } from "../../types/chat";
+} from "../src/services/spaceService";
+import { streamChatWithGemini } from "../src/services/geminiService";
+import type { Space, SpaceFile } from "../src/types/space";
+import type { ChatSession, ChatMessage } from "../src/types/chat";
 // import Header from '../../components/Header';
-import Sidebar from "../../components/Sidebar";
+import Sidebar from "../src/components/Sidebar";
 import ChatInterface from "../../components/ChatInterface";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
+import LoadingSpinner from "../src/components/common/LoadingSpinner";
 import toast from "react-hot-toast";
 import ResizablePanel from "../../components/note/ResizablePanel";
 import NotesPanel from "../../components/note/NotesPanel";
-import Sandbox from "../../components/code/Sandbox";
-import { useMobile } from "../../contexts/MobileContext";
+import Sandbox from "../src/components/code/Sandbox";
+import { useMobile } from "../src/contexts/MobileContext";
 
 // Extended SpaceFile type to include processing status
 interface ExtendedSpaceFile extends SpaceFile {

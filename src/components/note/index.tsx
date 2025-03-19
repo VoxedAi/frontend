@@ -438,7 +438,7 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
   };
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full overflow-hidden">
       {!selectedNote ? (
         <NoteList
           notes={notes}

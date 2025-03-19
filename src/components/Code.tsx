@@ -109,8 +109,8 @@ export default function Sandbox() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full gap-4 py-12 px-4 bg-white max-h-screen">
-      <div className="flex justify-between items-center mb-2">
+    <div className="flex flex-col h-full w-full gap-2 py-2 px-2 bg-white max-h-full overflow-hidden">
+      <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
           <label htmlFor="language-select" className="text-sm text-adaptive font-medium">
             Language:
@@ -171,7 +171,7 @@ export default function Sandbox() {
         }}
       >
         {/* Run Button and Console Layout Toggle */}
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-1">
           <div>
             {(selectedLanguage === "python" || layoutMode === "console") && (
               <button
@@ -195,7 +195,7 @@ export default function Sandbox() {
           </div>
         </div>
         
-        <SandpackLayout className={`transition-all duration-300 ease-in-out ${consoleLayout === "below" ? "flex-col" : ""}`}>
+        <SandpackLayout className={`transition-all duration-300 ease-in-out h-full ${consoleLayout === "below" ? "flex-col" : ""}`}>
           <SandpackCodeEditor
             showTabs={true}
             showLineNumbers={true}
@@ -205,9 +205,10 @@ export default function Sandbox() {
             showRunButton={false} 
             extensionsKeymap={[...completionKeymap]}
             style={{ 
-              height: consoleLayout === "below" ? 400 : 800,
+              height: consoleLayout === "below" ? "calc(50% - 1rem)" : "100%",
               flex: consoleLayout === "side-by-side" ? "1 1 49%" : "1 1 auto",
               transition: "height 0.3s ease-in-out, flex 0.3s ease-in-out",
+              minHeight: "100px"
             }}
             additionalLanguages={languages}
           />
@@ -215,9 +216,10 @@ export default function Sandbox() {
             <div 
               className={`overflow-auto bg-background ${consoleLayout === "below" ? "border-t" : "border-l"} border-adaptive transition-all duration-300 ease-in-out`} 
               style={{ 
-                height: consoleLayout === "below" ? 400 : 800,
+                height: consoleLayout === "below" ? "calc(50% - 1rem)" : "100%",
                 flex: consoleLayout === "side-by-side" ? "1 1 49%" : "1 1 auto",
-                transition: "height 0.3s ease-in-out, flex 0.3s ease-in-out"
+                transition: "height 0.3s ease-in-out, flex 0.3s ease-in-out",
+                minHeight: "100px"
               }}
             >
               <CustomConsoleOutput 

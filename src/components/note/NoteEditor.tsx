@@ -266,10 +266,10 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({ onClose, noteId, note
 
   // Renders the editor instance using a React component.
   return (
-    <div className="w-full h-full pt-16 pl-10 flex flex-col relative max-w-3/4">
-      <div className="top-0 left-0 right-0 p-2 flex items-center justify-between z-10 max-w-3/4">
+    <div className="w-full h-full flex flex-col relative overflow-hidden">
+      <div className="p-2 flex items-center justify-between z-10 border-b">
         <div className="relative w-full">
-          <div className="cursor-pointer focus:bg-card flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-left text-adaptive rounded-md transition-all duration-200">
+          <div className="cursor-pointer flex items-center justify-between w-full px-2 py-1 text-sm font-medium text-left text-adaptive transition-all duration-200">
             <span className="truncate flex items-center">
               {noteName}
               <span
@@ -311,11 +311,13 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({ onClose, noteId, note
         )}
         
         <EditorErrorBoundary onError={handleEditorError}>
-          <BlockNoteView 
-            editor={editor} 
-            onChange={handleEditorChange}
-            theme={theme === 'dark' ? 'dark' : 'light'}
-          />
+          <div className="h-full w-full overflow-auto">
+            <BlockNoteView 
+              editor={editor} 
+              onChange={handleEditorChange}
+              theme={theme === 'dark' ? 'dark' : 'light'}
+            />
+          </div>
         </EditorErrorBoundary>
       </div>
     </div>

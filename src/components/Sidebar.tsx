@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   });
 
   return (
-    <div className="w-60 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ease-in-out">
+    <div className="w-60 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out">
       {/* Header - with space for the toggle button */}
       <div className="p-3 pl-16 flex items-center gap-2">
         <div className="flex items-center">

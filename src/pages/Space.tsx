@@ -682,55 +682,57 @@ const Space = () => {
 
       {/* Sidebar - only rendered when open */}
       {sidebarOpen && (
-        <Sidebar
-          spaceName={spaceName}
-          files={files}
-          notes={notes}
-          isLoadingFiles={isLoadingFiles}
-          isLoadingNotes={isLoadingNotes}
-          uploadingFiles={uploadingFiles}
-          isCreatingNote={isCreatingNote}
-          selectedNote={safeSelectedNoteId}
-          noteSearch={noteSearch}
-          setNoteSearch={setNoteSearch}
-          setSelectedNote={setSelectedNote}
-          toggleFileVisibility={toggleFileVisibility}
-          handleDeleteFile={handleDeleteFile}
-          handleDeleteNote={handleDeleteNote}
-          createNewNote={createNewNote}
-          handleNewFile={handleNewFile}
-          setShowChat={setShowChat}
-          setShowNote={setShowNote}
-          setShowSandbox={setShowSandbox}
-          fileInputRef={fileInputRef}
-          handleFileUpload={handleFileUpload}
-          openNote={openNote}
-          showNotesList={showNotesList}
-        />
+        <div className="flex-shrink-0">
+          <Sidebar
+            spaceName={spaceName}
+            files={files}
+            notes={notes}
+            isLoadingFiles={isLoadingFiles}
+            isLoadingNotes={isLoadingNotes}
+            uploadingFiles={uploadingFiles}
+            isCreatingNote={isCreatingNote}
+            selectedNote={safeSelectedNoteId}
+            noteSearch={noteSearch}
+            setNoteSearch={setNoteSearch}
+            setSelectedNote={setSelectedNote}
+            toggleFileVisibility={toggleFileVisibility}
+            handleDeleteFile={handleDeleteFile}
+            handleDeleteNote={handleDeleteNote}
+            createNewNote={createNewNote}
+            handleNewFile={handleNewFile}
+            setShowChat={setShowChat}
+            setShowNote={setShowNote}
+            setShowSandbox={setShowSandbox}
+            fileInputRef={fileInputRef}
+            handleFileUpload={handleFileUpload}
+            openNote={openNote}
+            showNotesList={showNotesList}
+          />
+        </div>
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ease-in-out h-full`}>
+      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out h-full pt-6`}>
         {showChat && !showNote && <SimplifiedChatInterface />}
         {showNote && !showChat && (
             <ResizablePanel defaultRatio={0.7}>
-                <div className="h-full py-2">
+                <div className="h-full py-2 overflow-auto">
                     <Note 
                       noteId={safeSelectedNoteId} 
                       onNoteSelect={setSelectedNote} 
                     />
                 </div>
-                <div className="h-full">
+                <div className="h-full overflow-auto">
                     <ChatInterface />
                 </div>
             </ResizablePanel>
         )}
         {!showNote && !showChat && showSandbox && (
             <ResizablePanel defaultRatio={0.7}>
-                <div className="h-full py-2">
+                <div className="h-full py-2 overflow-auto">
                     <Sandbox />
                 </div>
-                <div className="h-full">
+                <div className="h-full overflow-auto">
                     <ChatInterface />
                 </div>
             </ResizablePanel>

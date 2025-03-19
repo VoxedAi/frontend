@@ -25,6 +25,7 @@ export const SpaceSchema = z.object({
   description: z.string().optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
+  emoji: z.string().optional(),
 });
 
 // Type derived from the schema

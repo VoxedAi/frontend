@@ -74,9 +74,9 @@ const NoteList: React.FC<NoteListProps> = ({
   });
 
   return (
-    <div className="flex flex-col w-full max-w-6xl mx-auto p-6 rounded-lg bg-white dark:bg-gray-900">
+    <div className="flex flex-col w-full h-full max-w-6xl mx-auto p-6 rounded-lg bg-white dark:bg-gray-900 overflow-hidden">
       {/* Header with search and create button */}
-      <div className="relative mb-8 flex items-center">
+      <div className="relative mb-8 flex items-center flex-shrink-0">
         <div className="relative flex-grow">
           <input
             type="text"
@@ -152,7 +152,7 @@ const NoteList: React.FC<NoteListProps> = ({
         </div>
       ) : (
         /* Notes List */
-        <div className="space-y-10">
+        <div className="space-y-10 overflow-y-auto flex-grow h-0 min-h-0">
           {filteredNotes.map(note => (
             <div 
               key={note.id}

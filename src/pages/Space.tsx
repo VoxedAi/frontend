@@ -33,6 +33,7 @@ import { supabase } from '../services/supabase';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import { useLayoutState } from '../hooks';
+import NoteModal from '../components/NoteModal';
 
 // Extended file type with visibility state
 interface ExtendedFile extends SpaceFile {
@@ -73,6 +74,7 @@ const Space = () => {
   const [notes, setNotes] = useState<ExtendedFile[]>([]);
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [noteSearch, setNoteSearch] = useState('');
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const { supabaseUserId, getSupabaseClient, refreshSupabaseToken } =
     useSupabaseUser();
   
@@ -431,9 +433,17 @@ const Space = () => {
     }
   };
 
-  // Create a new note
-  const createNewNote = async () => {
-    if (!spaceId || !supabaseUserId) return;
+  // Create a new note - this now just opens the modal
+  const createNewNote = () => {
+    setIsNoteModalOpen(true);
+  };
+
+  // Actual function to create a note with metadata
+  const handleCreateNoteWithMetadata = async (title: string, description: string, relatedFiles: string[], tags: string[], emoji: string) => {
+    if (!spaceId || !supabaseUserId) {
+      toast.error("Missing required information to create note");
+      return;
+    }
     
     // Prevent multiple simultaneous note creations
     if (isCreatingNote) {
@@ -446,7 +456,8 @@ const Space = () => {
     
     try {
       // Create a unique note name
-      const newNoteName = `Note_${new Date().toISOString().slice(0, 19).replace(/[T:.]/g, "-")}`;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:.]/g, "-");
+      const newNoteName = `Note_${timestamp}`;
       
       // Create a blank JSON structure for the note
       const initialContent = {
@@ -476,6 +487,16 @@ const Space = () => {
       const file = new Blob([contentString], { type: fileType }) as any;
       file.name = fileName;
       file.lastModified = new Date().getTime();
+      
+      // Prepare metadata
+      const metadata = {
+        title,
+        description,
+        tags,
+        emoji,
+        related_files: relatedFiles.join(', '),
+        created: new Date().toISOString()
+      };
       
       // Get an authenticated Supabase client
       const authClient = await getSupabaseClient();
@@ -518,6 +539,7 @@ const Space = () => {
         file_type: fileType,
         file_size: contentBlob.size,
         is_note: true,
+        metadata
       };
       
       const { data: fileRecord, error: dbError } = await authClient
@@ -551,6 +573,9 @@ const Space = () => {
         setShowChat(false);
         setShowSandbox(false);
         
+        // Set selected note
+        setSelectedNote(newNoteFile.id);
+        
         // Process the file to ensure it's handled like other files
         try {
           await processFile(newNoteFile.id);
@@ -572,6 +597,8 @@ const Space = () => {
       setIsCreatingNote(false);
       // Close the menu
       setShowNewFileMenu(false);
+      // Close the modal
+      setIsNoteModalOpen(false);
     }
   };
 
@@ -630,13 +657,7 @@ const Space = () => {
   );
 
   return (
-    <div 
-      className="flex relative"
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
       {/* Drag overlay - only shown when dragging */}
       {isDragging && (
         <div className="absolute inset-0 bg-gray-900/50 dark:bg-gray-800/70 z-50 flex items-center justify-center">
@@ -714,6 +735,15 @@ const Space = () => {
             </div>
         )}
       </div>
+
+      {/* Add NoteModal component */}
+      <NoteModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        onCreateNote={handleCreateNoteWithMetadata}
+        isCreating={isCreatingNote}
+        availableFiles={files}
+      />
     </div>
   );
 };

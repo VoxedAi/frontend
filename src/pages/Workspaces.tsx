@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EmojiClickData } from 'emoji-picker-react';
 import { useNavigate } from 'react-router-dom';
-import EmojiPicker from 'emoji-picker-react';
 import { Workspace as BaseWorkspace, Space } from '../types/space';
 import { useSupabaseUser } from '../contexts/UserContext';
 import { 
@@ -14,16 +12,11 @@ import {
 } from '../services/workspaceService';
 import { createSpaceWithWorkspace } from '../services/spaceService';
 import { useFilterState } from '../hooks';
+import EmojiPickerModal from '../components/common/EmojiPicker';
 
 // Extend the Workspace type to include has_children
 interface Workspace extends BaseWorkspace {
   has_children?: boolean;
-}
-
-// Define interfaces for component props
-interface EmojiPickerModalProps {
-  onEmojiSelect: (emoji: string) => void;
-  selectedEmoji: string;
 }
 
 interface SpaceModalProps {
@@ -57,34 +50,6 @@ interface SpaceItem {
   created_at: string;
   workspaceId?: string;
 }
-
-// EmojiPickerModal component
-const EmojiPickerModal: React.FC<EmojiPickerModalProps> = ({ onEmojiSelect, selectedEmoji }) => {
-    const [showPicker, setShowPicker] = useState(false);
-  
-    const handleEmojiClick = (emojiData: EmojiClickData) => {
-      onEmojiSelect(emojiData.emoji);
-      setShowPicker(false);
-    };
-  
-    return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setShowPicker(!showPicker)}
-          className="w-12 h-12 flex items-center justify-center text-2xl bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-        >
-          {selectedEmoji || '😀'}
-        </button>
-        
-        {showPicker && (
-          <div className="fixed z-50 left-1/2 transform -translate-x-1/2">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
-          </div>
-        )}
-      </div>
-    );
-};
 
 // SpaceModal component
 const SpaceModal: React.FC<SpaceModalProps> = ({ 
@@ -1175,7 +1140,7 @@ const SpaceGalleryUI: React.FC = () => {
             : undefined
         }
         isEditing={isEditing}
-        selectedWorkspaceId={selectedWorkspaceId}
+        selectedWorkspaceId={selectedWorkspaceId || null}
       />
 
       {/* Delete workspace confirmation modal */}

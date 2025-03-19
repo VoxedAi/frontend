@@ -155,6 +155,7 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
       console.error('Invalid note file or file path');
       return null;
     }
+    console.log('Loading note content for filepath:', noteFile.file_path);
 
     setIsLoadingNoteContent(true);
     try {
@@ -296,7 +297,7 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
   };
 
   // Create a new note with metadata
-  const handleCreateNoteWithMetadata = async (title: string, description: string, relatedFiles: string[]) => {
+  const handleCreateNoteWithMetadata = async (title: string, description: string, relatedFiles: string[], tags: string[], emoji: string) => {
     if (!spaceId || !supabaseUserId) {
       toast.error("Missing required information to create note");
       return;
@@ -349,7 +350,9 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
       const metadata = {
         title,
         description,
-        relatedFiles,
+        tags,
+        emoji,
+        related_files: relatedFiles.join(', '),
         created: new Date().toISOString()
       };
       

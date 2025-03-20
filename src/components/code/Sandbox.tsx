@@ -1,9 +1,9 @@
 import { SandpackProvider, SandpackLayout, SandpackCodeEditor, SandpackPreview, SandpackConsole, UnstyledOpenInCodeSandboxButton, useSandpack } from "@codesandbox/sandpack-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import languageFiles from "../../utils/codeExamples";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { githubLight, atomDark } from "@codesandbox/sandpack-themes";
-import { FaColumns, FaChevronDown, FaEyeSlash } from "react-icons/fa";
+import { FaColumns, FaChevronDown, FaEyeSlash, FaPlus, FaTrash, FaSortDown, FaSortUp, FaKey } from "react-icons/fa";
 import { useTheme } from "../../contexts/ThemeContext";
 
 import { python } from "@codemirror/lang-python";
@@ -12,6 +12,18 @@ import { executeCode, executeCodeLocally, CodeExecutionResponse } from "../../se
 
 type SandpackLayoutMode = "preview" | "tests" | "console";
 type ConsoleLayoutMode = "side-by-side" | "below" | "collapsed";
+
+// Define the file structure with metadata
+interface FileData {
+  code: string;
+  active: boolean;
+  isMain?: boolean;
+  generationOrder: number;
+}
+
+interface Files {
+  [key: string]: FileData;
+}
 
 // Custom console output component
 const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, isRunning, setIsRunning }: { result: CodeExecutionResponse | null, setCodeExecutionResult: React.Dispatch<React.SetStateAction<CodeExecutionResponse | null>>, setLayoutMode: React.Dispatch<React.SetStateAction<SandpackLayoutMode>>, isRunning: boolean, setIsRunning: React.Dispatch<React.SetStateAction<boolean>> }) => {
@@ -43,7 +55,15 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
       <div className="font-mono text-sm h-full bg-background overflow-auto flex flex-col justify-center items-center">
         <div className="p-4 text-adaptive flex flex-col justify-center items-center space-y-4">
           <p>Run your code to see output here.</p>
-          <RunButton setCodeExecutionResult={setCodeExecutionResult} setLayoutMode={setLayoutMode} isRunning={isRunning} setIsRunning={setIsRunning} />
+          <RunPythonButton
+            files={{}}
+            fileKeys={[]}
+            getOrderedFiles={() => []} 
+            setCodeExecutionResult={setCodeExecutionResult}
+            toggleConsoleLayoutRunButton={() => {}}
+            isRunning={isRunning}
+            setIsRunning={setIsRunning}
+          />
         </div>
       </div>
     );
@@ -55,7 +75,7 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
   const hasOutput = result.stdout && result.stdout.trim().length > 0;
 
   return (
-    <div className="font-mono text-sm h-full bg-background overflow-auto">
+    <div className="font-mono text-sm bg-background overflow-auto">
       <div className="p-4">
         {/* Execution Status Header */}
         <div className={`${hasExecutionError ? "text-red-600" : "text-green-600"} mb-2`}>
@@ -71,7 +91,7 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
         {hasOutput && (
           <div className="mb-4">
             <div className="text-adaptive font-semibold mb-1">Output:</div>
-            <div className={`bg-background rounded-md overflow-auto max-h-96 border border-adaptive`}>
+            <div className={`bg-background rounded-md overflow-auto border border-adaptive`}>
               {renderWithLineNumbers(result.stdout)}
             </div>
           </div>
@@ -81,7 +101,7 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
         {hasExecutionError && (
           <div className="mb-4">
             <div className="text-red-600 font-semibold mb-1">Error:</div>
-            <div className="bg-red-50 rounded-md overflow-auto max-h-96 border border-red-200">
+            <div className="bg-red-50 rounded-md overflow-auto border border-red-200">
               {renderWithLineNumbers(result.stderr)}
             </div>
           </div>
@@ -91,7 +111,7 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
         {hasResult && (
           <div className="mb-4">
             <div className="text-adaptive font-semibold mb-1">Variables:</div>
-            <div className={`bg-card p-3 rounded-md overflow-auto max-h-80 border border-adaptive`}>
+            <div className={`bg-card p-3 rounded-md overflow-auto border border-adaptive`}>
               <table className="w-full text-left">
                 <thead className="border-b border-adaptive">
                   <tr>
@@ -130,29 +150,194 @@ const CustomConsoleOutput = ({ result, setCodeExecutionResult, setLayoutMode, is
 
 export default function Sandbox() {
   const { theme } = useTheme();
-  const [selectedLanguage, setSelectedLanguage] = useState("python");
-  const [layoutMode, setLayoutMode] = useState<SandpackLayoutMode>("preview");
+  const [layoutMode, setLayoutMode] = useState<SandpackLayoutMode>("console");
   const [codeExecutionResult, setCodeExecutionResult] = useState<CodeExecutionResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [consoleLayout, setConsoleLayout] = useState<ConsoleLayoutMode>("collapsed");
+  const [files, setFiles] = useState<Files>({});
+  const [fileKeys, setFileKeys] = useState<string[]>([]);
+  const [activeFile, setActiveFile] = useState<string>("/main.py");
+  const [newFileModalOpen, setNewFileModalOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState("");
+  const [generationCounter, setGenerationCounter] = useState(1);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
 
-  const languages = [
-    {
-      name: "python",
-      extensions: ["py"],
-      language: python(),
-    }
-  ]
-  
-  // Get files based on selected language
-  const files = languageFiles[selectedLanguage as keyof typeof languageFiles] || languageFiles.javascript;
-  
-  // When Python is selected, force the layout mode to be console
+  // Initialize with default Python file
   useEffect(() => {
-    if (selectedLanguage === "python") {
-      setLayoutMode("console");
+    const pythonExample = languageFiles.python;
+    
+    // Convert to our file structure format
+    const initialFiles: Files = {};
+    let initialFileKeys: string[] = [];
+    
+    Object.entries(pythonExample).forEach(([key, value], index) => {
+      const isMain = key === "/main.py";
+      initialFiles[key] = {
+        ...value, 
+        isMain,
+        generationOrder: index + 1
+      };
+      initialFileKeys.push(key);
+    });
+    
+    setFiles(initialFiles);
+    setFileKeys(initialFileKeys);
+    setGenerationCounter(Object.keys(initialFiles).length + 1);
+  }, []);
+
+  // Add new file handler
+  const handleAddFile = () => {
+    if (!newFileName) return;
+    
+    // Ensure the file has a .py extension
+    let filename = newFileName;
+    if (!filename.endsWith(".py")) {
+      filename += ".py";
     }
-  }, [selectedLanguage]);
+    
+    // Make sure the filename has a leading slash
+    if (!filename.startsWith("/")) {
+      filename = "/" + filename;
+    }
+    
+    // Check if the file already exists
+    if (fileKeys.includes(filename)) {
+      alert("A file with this name already exists.");
+      return;
+    }
+    
+    // Add the new file
+    const newFiles = {
+      ...files,
+      [filename]: {
+        code: "# New Python file\n",
+        active: true,
+        isMain: false,
+        generationOrder: generationCounter
+      }
+    };
+    
+    const newFileKeys = [...fileKeys, filename];
+    
+    setFiles(newFiles);
+    setFileKeys(newFileKeys);
+    setActiveFile(filename);
+    setNewFileModalOpen(false);
+    setNewFileName("");
+    setGenerationCounter(prev => prev + 1);
+  };
+
+  // Delete file handler
+  const handleDeleteFile = (filename: string) => {
+    // Don't delete if it's the only file or if it's the main file
+    if (fileKeys.length <= 1 || files[filename].isMain) {
+      return;
+    }
+    
+    const newFiles = { ...files };
+    delete newFiles[filename];
+    
+    const newFileKeys = fileKeys.filter(key => key !== filename);
+    
+    setFiles(newFiles);
+    setFileKeys(newFileKeys);
+    
+    // If we deleted the active file, set a new active file
+    if (activeFile === filename) {
+      setActiveFile(newFileKeys[0]);
+    }
+  };
+
+  // Set as main file handler
+  const handleSetMainFile = (filename: string) => {
+    const newFiles = { ...files };
+    
+    // Update all files to not be main
+    Object.keys(newFiles).forEach(key => {
+      if (newFiles[key].isMain) {
+        newFiles[key] = { ...newFiles[key], isMain: false };
+      }
+    });
+    
+    // Set the selected file as main
+    newFiles[filename] = { ...newFiles[filename], isMain: true };
+    
+    setFiles(newFiles);
+  };
+
+  // Move file up in generation order
+  const handleMoveFileUp = (filename: string) => {
+    const currentOrder = files[filename].generationOrder;
+    
+    // Find the file that's right before this one in order
+    const fileToSwapWith = Object.entries(files).find(
+      ([_, data]) => data.generationOrder === currentOrder - 1
+    );
+    
+    if (!fileToSwapWith) return; // Can't move up if already at the top
+    
+    const newFiles = { ...files };
+    newFiles[filename] = { ...newFiles[filename], generationOrder: currentOrder - 1 };
+    newFiles[fileToSwapWith[0]] = { ...newFiles[fileToSwapWith[0]], generationOrder: currentOrder };
+    
+    setFiles(newFiles);
+  };
+
+  // Move file down in generation order
+  const handleMoveFileDown = (filename: string) => {
+    const currentOrder = files[filename].generationOrder;
+    
+    // Find the file that's right after this one in order
+    const fileToSwapWith = Object.entries(files).find(
+      ([_, data]) => data.generationOrder === currentOrder + 1
+    );
+    
+    if (!fileToSwapWith) return; // Can't move down if already at the bottom
+    
+    const newFiles = { ...files };
+    newFiles[filename] = { ...newFiles[filename], generationOrder: currentOrder + 1 };
+    newFiles[fileToSwapWith[0]] = { ...newFiles[fileToSwapWith[0]], generationOrder: currentOrder };
+    
+    setFiles(newFiles);
+  };
+
+  // Convert our file structure to Sandpack format
+  const getSandpackFiles = () => {
+    const sandpackFiles: Record<string, { code: string, active: boolean }> = {};
+    
+    Object.entries(files).forEach(([key, value]) => {
+      sandpackFiles[key] = {
+        code: value.code,
+        active: key === activeFile
+      };
+    });
+    
+    return sandpackFiles;
+  };
+
+  // Get files in order of generation (with main file always last)
+  const getOrderedFiles = () => {
+    // First get all non-main files sorted by generationOrder
+    const nonMainFiles = Object.entries(files)
+      .filter(([_, data]) => !data.isMain)
+      .sort((a, b) => a[1].generationOrder - b[1].generationOrder);
+    
+    // Then find the main file
+    const mainFile = Object.entries(files).find(([_, data]) => data.isMain);
+    
+    // Combine them with main file last
+    return [
+      ...nonMainFiles,
+      ...(mainFile ? [mainFile] : [])
+    ];
+  };
+
+  // Focus the new file input when modal opens
+  useEffect(() => {
+    if (newFileModalOpen && newFileInputRef.current) {
+      newFileInputRef.current.focus();
+    }
+  }, [newFileModalOpen]);
 
   // Console layout toggle handler
   const toggleConsoleLayout = () => {
@@ -163,14 +348,8 @@ export default function Sandbox() {
   };
 
   const toggleConsoleLayoutRunButton = () => {
-    switch (consoleLayout) {
-      case "below":
-        break;
-      case "side-by-side":
-        break;
-      case "collapsed":
-        toggleConsoleLayout();
-        break;
+    if (consoleLayout === "collapsed") {
+      toggleConsoleLayout();
     }
   };
 
@@ -227,194 +406,229 @@ export default function Sandbox() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full gap-4 py-12 px-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor="language-select" className="text-sm text-adaptive font-medium">
-            Language:
-          </label>
-          <select
-            id="language-select"
-            value={selectedLanguage}
-            onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="px-2 py-1 text-sm rounded-md bg-background text-adaptive border-adaptive hover:bg-hover transition-colors focus:outline-none focus:ring-1 ring-adaptive cursor-pointer"
-          >
-            {languages.map((language) => (
-              <option key={language.name} value={language.name}>
-                {language.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            {/* Only show view options if language is not Python */}
-            {selectedLanguage !== "python" ? (
-              <>
-                <label htmlFor="view-select" className="text-sm text-adaptive font-medium">
-                  View:
-                </label>
-                <select
-                  id="view-select"
-                  value={layoutMode}
-                  onChange={(e) => setLayoutMode(e.target.value as SandpackLayoutMode)}
-                  className="px-2 py-1 text-sm rounded-md bg-background text-adaptive border-adaptive hover:bg-hover transition-colors focus:outline-none focus:ring-1 ring-adaptive"
-                >
-                  <option value="preview">Preview</option>
-                  <option value="tests">Tests</option>
-                  <option value="console">Console</option>
-                </select>
-              </>
-            ) : (
-              <div className="text-sm text-adaptive font-medium">
-                <span className="text-primary font-medium">Console View</span> (Python)
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
+    <div className="flex flex-col h-full w-full py-6 px-4">
       <SandpackProvider
         theme={customTheme}
-        template="react"
-        files={files}
+        files={getSandpackFiles()}
+        template="vanilla"
+        customSetup={{
+          entry: activeFile,
+          dependencies: {
+          }
+        }}
         options={{
-          classes: {
-            "sp-wrapper": "border border-adaptive rounded-lg overflow-hidden",
-            "sp-layout": "bg-background",
-            "sp-tab-button": "text-adaptive hover:bg-hover",
-          },
-          initMode: "lazy",
+          activeFile: activeFile,
+          visibleFiles: fileKeys,
         }}
       >
-        {/* Run Button and Console Layout Toggle */}
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            {(selectedLanguage === "python" || layoutMode === "console") && (
-              <button
-                type="button"
-                onClick={toggleConsoleLayout}
-                className="inline-flex items-center text-xs justify-center px-2 py-1 rounded-md text-adaptive bg-background hover:bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/50 transition-all cursor-pointer"
-                title={getConsoleLayoutTooltip()}
-              >
-                {getConsoleLayoutIcon()}
-                <span>Console: {getConsoleLayoutLabel()}</span>
-              </button>
-            )}
+        {/* File Management Toolbar */}
+        <div className="mb-4 flex items-center justify-between bg-card p-2 rounded-md">
+          <div className="flex items-center space-x-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+            {getOrderedFiles().map(([filename, fileData]) => (
+              <div key={filename} className="flex-shrink-0">
+                <button
+                  className={`px-3 py-1.5 rounded-md text-sm flex items-center ${
+                    activeFile === filename
+                      ? "bg-primary text-white"
+                      : "bg-card-secondary hover:bg-card-secondary/80 text-adaptive"
+                  }`}
+                  onClick={() => setActiveFile(filename)}
+                >
+                  {fileData.isMain && <FaKey className="mr-1 text-xs" />}
+                  {filename.replace("/", "")}
+                </button>
+              </div>
+            ))}
           </div>
-          <div onClick={() => toggleConsoleLayoutRunButton()}>
-            <RunButton 
-              setCodeExecutionResult={setCodeExecutionResult} 
-              setLayoutMode={setLayoutMode}
-              isRunning={isRunning}
-              setIsRunning={setIsRunning}
-            />
+          
+          <div className="ml-2 flex items-center">
+            <button
+              onClick={() => setNewFileModalOpen(true)}
+              className="p-1.5 rounded-md bg-primary text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              title="Create new file"
+            >
+              <FaPlus size={14} />
+            </button>
+            
+            <button
+              onClick={toggleConsoleLayout}
+              className="ml-2 p-1.5 rounded-md bg-card-secondary text-adaptive hover:bg-card-secondary/80 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              title={getConsoleLayoutTooltip()}
+            >
+              {getConsoleLayoutIcon()}
+            </button>
           </div>
         </div>
         
-        <SandpackLayout className={`transition-all duration-300 ease-in-out ${consoleLayout === "below" ? "flex-col" : ""}`}>
-          <SandpackCodeEditor
-            showTabs={true}
-            showLineNumbers={true}
-            showInlineErrors={true}
-            wrapContent={true}
-            extensions={[autocompletion()]}
-            showRunButton={false} /* Disable the default run button as we're using our custom one */
-            extensionsKeymap={[...completionKeymap]}
-            style={{ 
-              height: consoleLayout === "below" ? 400 : 800,
-              flex: consoleLayout === "side-by-side" ? "1 1 49%" : "1 1 auto",
-              transition: "height 0.3s ease-in-out, flex 0.3s ease-in-out",
-            }}
-            additionalLanguages={languages}
-          />
-          {(selectedLanguage === "python") && consoleLayout !== "collapsed" && (
-            <div 
-              className={`overflow-auto bg-background ${consoleLayout === "below" ? "border-t" : "border-l"} border-adaptive transition-all duration-300 ease-in-out`} 
-              style={{ 
-                height: consoleLayout === "below" ? 400 : 800,
-                flex: consoleLayout === "side-by-side" ? "1 1 49%" : "1 1 auto",
-                transition: "height 0.3s ease-in-out, flex 0.3s ease-in-out"
-              }}
-            >
-              <CustomConsoleOutput result={codeExecutionResult} setCodeExecutionResult={setCodeExecutionResult} setLayoutMode={setLayoutMode} isRunning={isRunning} setIsRunning={setIsRunning} />
-            </div>
-          )}
-          {(selectedLanguage === "javascript") && consoleLayout !== "collapsed" && (
-            <div className="flex-1 overflow-auto bg-background border-l border-adaptive">
-              <SandpackConsole
-                showSyntaxError={true}
-                showResetConsoleButton={true}
-                showRestartButton={true}
-                resetOnPreviewRestart={true}
-                showHeader={true}
+        <div className={`h-full ${consoleLayout === "side-by-side" ? "flex gap-4" : "flex flex-col gap-4"}`}>
+          <div className={`${consoleLayout === "side-by-side" ? "w-1/2" : "w-full"}`}>
+            <SandpackCodeEditor
+              showLineNumbers={true}
+              showInlineErrors={true}
+              wrapContent={true}
+              extensions={[python(), autocompletion()]}
+            />
+          </div>
+          
+          {consoleLayout !== "collapsed" && (
+            <div className={`${consoleLayout === "side-by-side" ? "w-1/2" : "w-full"} border border-adaptive rounded-md overflow-hidden`}>
+              <CustomConsoleOutput
+                result={codeExecutionResult}
+                setCodeExecutionResult={setCodeExecutionResult}
+                setLayoutMode={setLayoutMode}
+                isRunning={isRunning}
+                setIsRunning={setIsRunning}
               />
             </div>
           )}
-          {selectedLanguage !== "python" && layoutMode !== "console" && (
+        </div>
+        
+        {/* File Actions */}
+        <div className="pb-14 flex flex-wrap items-center gap-2">
+          <RunPythonButton
+            files={files}
+            fileKeys={fileKeys}
+            getOrderedFiles={getOrderedFiles}
+            setCodeExecutionResult={setCodeExecutionResult}
+            toggleConsoleLayoutRunButton={toggleConsoleLayoutRunButton}
+            isRunning={isRunning}
+            setIsRunning={setIsRunning}
+          />
+          
+          {activeFile && !files[activeFile]?.isMain && (
+            <button
+              onClick={() => handleSetMainFile(activeFile)}
+              className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+            >
+              <FaKey className="mr-1" />
+              Set as Main
+            </button>
+          )}
+          
+          {activeFile && fileKeys.length > 1 && !files[activeFile]?.isMain && (
+            <button
+              onClick={() => handleDeleteFile(activeFile)}
+              className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+            >
+              <FaTrash className="mr-1" />
+              Delete
+            </button>
+          )}
+          
+          {activeFile && (
             <>
-              {layoutMode === "preview" && <SandpackPreview showNavigator={true} />}
-              {layoutMode === "tests" && <SandpackPreview showNavigator={false} />}
+              <button
+                onClick={() => handleMoveFileUp(activeFile)}
+                disabled={files[activeFile]?.generationOrder <= 1}
+                className="px-3 py-1.5 bg-card-secondary text-adaptive rounded-md hover:bg-card-secondary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+              >
+                <FaSortUp className="mr-1" />
+                Move Up
+              </button>
+              
+              <button
+                onClick={() => handleMoveFileDown(activeFile)}
+                disabled={
+                  files[activeFile]?.generationOrder >= 
+                  Math.max(...Object.values(files).map(f => f.generationOrder))
+                }
+                className="px-3 py-1.5 bg-card-secondary text-adaptive rounded-md hover:bg-card-secondary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+              >
+                <FaSortDown className="mr-1" />
+                Move Down
+              </button>
             </>
           )}
-        </SandpackLayout>
-        <div className="flex justify-between items-center p-2">
-          <UnstyledOpenInCodeSandboxButton className="text-primary underline px-4 py-2">
-              Open in CodeSandbox
-          </UnstyledOpenInCodeSandboxButton>
         </div>
       </SandpackProvider>
+      
+      {/* New File Modal */}
+      {newFileModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-4 rounded-md w-96 max-w-full">
+            <h3 className="text-lg font-semibold mb-4 text-adaptive">Create New File</h3>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddFile(); }}>
+              <div className="mb-4">
+                <label htmlFor="filename" className="block text-sm font-medium text-adaptive mb-1">
+                  File Name
+                </label>
+                <input
+                  ref={newFileInputRef}
+                  type="text"
+                  id="filename"
+                  value={newFileName}
+                  onChange={(e) => setNewFileName(e.target.value)}
+                  placeholder="example.py"
+                  className="w-full p-2 border border-adaptive rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-card text-adaptive"
+                />
+                <p className="text-xs text-muted mt-1">
+                  .py extension will be added automatically if not specified
+                </p>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => { setNewFileModalOpen(false); setNewFileName(""); }}
+                  className="px-3 py-1.5 border border-adaptive text-adaptive rounded-md hover:bg-card-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newFileName.trim()}
+                  className="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Run button component that has access to Sandpack context
-function RunButton({ 
+// Run button component for Python multi-file execution
+function RunPythonButton({ 
+  files,
+  fileKeys,
+  getOrderedFiles,
   setCodeExecutionResult, 
-  setLayoutMode, 
+  toggleConsoleLayoutRunButton,
   isRunning, 
   setIsRunning 
 }: { 
+  files: Files,
+  fileKeys: string[],
+  getOrderedFiles: () => [string, FileData][],
   setCodeExecutionResult: React.Dispatch<React.SetStateAction<CodeExecutionResponse | null>>, 
-  setLayoutMode: React.Dispatch<React.SetStateAction<SandpackLayoutMode>>,
+  toggleConsoleLayoutRunButton: () => void,
   isRunning: boolean,
   setIsRunning: React.Dispatch<React.SetStateAction<boolean>>
 }) {
-  const { sandpack } = useSandpack();
   const [useLocalFallback, setUseLocalFallback] = useState(false);
-
-  // Add a state to track API connection attempts
   const [apiConnectionAttempts, setApiConnectionAttempts] = useState(0);
 
   const runCode = async () => {
     if (isRunning) return;
     
     setIsRunning(true);
+    toggleConsoleLayoutRunButton();
     
     try {
-      // Get the current code and language
-      const activeFile = sandpack.activeFile;
-      const code = sandpack.files[activeFile].code;
-      const fileExtension = activeFile.split('.').pop() || '';
+      // Get all files in generation order, with main file last
+      const orderedFiles = getOrderedFiles();
       
-      // Map file extension to language
-      const extensionToLanguage: Record<string, string> = {
-        js: 'javascript',
-        jsx: 'javascript',
-        ts: 'typescript',
-        tsx: 'typescript',
-        py: 'python',
-        java: 'java',
-        cpp: 'cpp',
-        c: 'c',
-        rs: 'rust',
-        php: 'php',
-        rb: 'ruby',
-        go: 'go',
-      };
+      // Concatenate all files, separated by newlines
+      let combinedCode = "";
       
-      const language = extensionToLanguage[fileExtension] || 'javascript';
+      for (const [filename, fileData] of orderedFiles) {
+        // Add a comment to indicate the file source
+        combinedCode += `\n# ---- File: ${filename} ----\n`;
+        combinedCode += fileData.code;
+        combinedCode += "\n\n";
+      }
       
       let result: CodeExecutionResponse;
       
@@ -422,7 +636,7 @@ function RunButton({
       if (!useLocalFallback && apiConnectionAttempts < 3) {
         try {
           // Execute the code using the API
-          result = await executeCode(code, language);
+          result = await executeCode(combinedCode, 'python');
           
           // If we get here, the API is working
           setApiConnectionAttempts(0);
@@ -438,17 +652,14 @@ function RunButton({
           }
           
           // Use local fallback for this attempt
-          result = await executeCodeLocally(code, language);
+          result = await executeCodeLocally(combinedCode, 'python');
         }
       } else {
         // Use local fallback execution
-        result = await executeCodeLocally(code, language);
+        result = await executeCodeLocally(combinedCode, 'python');
       }
       
       setCodeExecutionResult(result);
-      
-      // Switch to console view automatically when code is run
-      setLayoutMode("console");
     } catch (error) {
       console.error("Failed to run code:", error);
       setCodeExecutionResult({
@@ -456,7 +667,6 @@ function RunButton({
         output: '',
         error: `Failed to run code: ${String(error)}`
       });
-      setLayoutMode("console");
     } finally {
       setIsRunning(false);
     }
@@ -485,7 +695,7 @@ function RunButton({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          Running...
+          Running Python...
         </>
       ) : (
         <>
@@ -501,7 +711,7 @@ function RunButton({
               clipRule="evenodd"
             />
           </svg>
-          Run Code {useLocalFallback && '(Local Mode)'}
+          Run Python {useLocalFallback && '(Local Mode)'}
         </>
       )}
     </button>

@@ -124,7 +124,7 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
       {/* Collapse/expand button */}
       {collapsible && (
         <button
-          className={`fixed right-4 top-4 z-10 p-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm`}
+          className={`fixed right-4 top-2 z-10 p-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm`}
           onClick={toggleCollapse}
           aria-label={isCollapsed ? "Expand chat panel" : "Collapse chat panel"}
         >

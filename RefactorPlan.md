@@ -176,23 +176,24 @@ The new UI has a notes list but it uses fake data. Don't worry about note editin
 - [x] Differentiate notes buttons 3 subtasks
     - [x] Make the dropdown button not propagate and separate opening dropdown and opening notes component
     - [x] Individual note buttons need to open the notes themselves
-- [ ] Update create/edit modal
-- [ ] New note button in sidebar needs to pull up note creation modal (from note.tsx)
-- [ ] Note editing modal (edit button needs to work on list cards). Just use the existing note creation modal and pre-populate the details
+- [x] Update create/edit modal
+- [x] New note button in sidebar needs to pull up note creation modal (from note.tsx)
+- [x] Note editing modal (edit button needs to work on list cards). Just use the existing note creation modal and pre-populate the details
 
 
 ## Phase 2: Chat Implementation
 
 ### 2.1 Message Handling System
 
-The new Chat component has UI for messages but lacks actual sending/receiving functionality.
+The new Chat component has UI for messages but lacks actual sending/receiving functionality. To see how old code
+worked read old_code/NotebookDetail.tsx and old_code/components/ChatInterface.tsx
 
 **Tasks:**
 - [ ] Implement message sending functionality from original ChatInterface
 - [ ] Set up message receiving and streaming response display
 - [ ] Add proper user/assistant message styling from the old ChatInterface
 - [ ] Implement the auto-resize textarea functionality
-- [ ] Add loading indicators during message sending/receiving
+- [ ] Ensure message streaming (no auto scroll)
 - [ ] Check console logs for any errors
 - [ ] Take screenshot of working chat interface
 
@@ -205,7 +206,7 @@ The original app had features to load and navigate between past conversations.
 - [ ] Add functionality to continue past conversations
 - [ ] Implement the chat UI state change after sending a message
 - [ ] Add chat session management (creating new sessions)
-- [ ] Implement proper message formatting with code highlighting
+- [ ] Implement proper message formatting with markdown rendering
 - [ ] Check console logs for any errors
 - [ ] Take screenshot of chat history and navigation
 

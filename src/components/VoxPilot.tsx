@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const ChatInterface = () => {
+const VoxPilot = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isCodingQuestion, setIsCodingQuestion] = useState(false);
@@ -238,4 +238,4 @@ const ChatInterface = () => {
   );
 };
 
-export default ChatInterface;
+export default VoxPilot;

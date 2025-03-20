@@ -19,11 +19,11 @@ import {
   Sun,
   Loader
 } from 'lucide-react';
-import SimplifiedChatInterface from '../components/Chat';
+import ChatInterface from '../components/chat/Chat';
 import Note from '../components/Note';
-import ChatInterface from '../components/VoxPilot';
+import VoxPilot from '../components/VoxPilot';
 import { useNavigate, useParams } from 'react-router-dom';
-import Sandbox from '../components/Code';
+import Sandbox from '../components/code/Sandbox';
 import { useSupabaseUser } from '../contexts/UserContext';
 import { getSpaceFiles, deleteFile, uploadAndProcessFile, processFile } from '../services/fileUpload';
 import { getSpace } from '../services/spaceService';
@@ -32,7 +32,7 @@ import type { SpaceFile } from '../types/space';
 import { supabase } from '../services/supabase';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
-import { useLayoutState } from '../hooks';
+import { useLayoutState } from '../hooks/useLayoutState';
 import NoteModal from '../components/NoteModal';
 import ResizablePanel from '../components/ResizablePanel';
 
@@ -657,6 +657,13 @@ const Space = () => {
     note.file_name.toLowerCase().includes(noteSearch.toLowerCase())
   );
 
+  // Update CSS variable when sidebar width changes
+  useEffect(() => {
+    if (layout.panelSizes?.sidebar) {
+      document.documentElement.style.setProperty('--sidebar-width', `${layout.panelSizes.sidebar-10}px`);
+    }
+  }, [layout.panelSizes?.sidebar]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
       {/* Drag overlay - only shown when dragging */}
@@ -712,8 +719,8 @@ const Space = () => {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out h-full pt-6`}>
-        {showChat && !showNote && <SimplifiedChatInterface />}
+      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out h-full pt-10`}>
+        {showChat && !showNote && <ChatInterface sidebarOpen={sidebarOpen} />}
         {showNote && !showChat && (
             <ResizablePanel defaultRatio={0.7}>
                 <div className="h-full py-2 overflow-auto">
@@ -723,17 +730,17 @@ const Space = () => {
                     />
                 </div>
                 <div className="h-full overflow-auto">
-                    <ChatInterface />
+                    <VoxPilot />
                 </div>
             </ResizablePanel>
         )}
         {!showNote && !showChat && showSandbox && (
             <ResizablePanel defaultRatio={0.7}>
-                <div className="h-full py-2 overflow-auto">
+                <div className="h-full py-2 overflow-auto max-h-screen overflow-y-auto">
                     <Sandbox />
                 </div>
                 <div className="h-full overflow-auto">
-                    <ChatInterface />
+                    <VoxPilot />
                 </div>
             </ResizablePanel>
         )}

@@ -73,6 +73,7 @@
 @layer base {
   :root {
     color-scheme: light dark;
+    --sidebar-width: 239px;
   }
 
   html.color-scheme-adaptive {

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMobile } from '../contexts/MobileContext';
 
 interface ResizablePanelProps {
   children: [React.ReactNode, React.ReactNode]; // Left and right content
@@ -18,9 +19,14 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
 }) => {
   const [ratio, setRatio] = useState<number>(defaultRatio);
   const [isResizing, setIsResizing] = useState<boolean>(false);
+  const isMobile = useMobile();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRatioBeforeCollapse = useRef<number>(defaultRatio);
+
+  useEffect(() => {
+    setIsCollapsed(isMobile);
+  }, [isMobile]);
 
   // Handle mouse down on separator
   const handleMouseDown = (e: React.MouseEvent) => {

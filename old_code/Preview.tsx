@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import SimplifiedChatInterface from './chat/NewChatInterface';
 import NotesInterface from './note/NotesInterface';
-import VoxPilot from '../src/components/VoxPilot';
+import VoxPilot from '../src/components/pilot/VoxPilot';
 import NewSidebar from './NewSidebar';
 import Sandbox from '../src/components/code/Sandbox';
 

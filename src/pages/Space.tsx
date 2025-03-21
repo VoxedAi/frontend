@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import ChatInterface from '../components/chat/Chat';
 import Note from '../components/Note';
-import VoxPilot from '../components/VoxPilot';
+import VoxPilot from '../components/pilot/VoxPilot';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sandbox from '../components/code/Sandbox';
 import { useSupabaseUser } from '../contexts/UserContext';
@@ -730,7 +730,7 @@ const Space = () => {
                     />
                 </div>
                 <div className="h-full overflow-auto">
-                    <VoxPilot />
+                    <VoxPilot simplified={true} sidebarOpen={sidebarOpen} />
                 </div>
             </ResizablePanel>
         )}
@@ -740,7 +740,7 @@ const Space = () => {
                     <Sandbox />
                 </div>
                 <div className="h-full overflow-auto">
-                    <VoxPilot />
+                    <VoxPilot simplified={true} sidebarOpen={sidebarOpen} />
                 </div>
             </ResizablePanel>
         )}

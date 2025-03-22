@@ -4,6 +4,7 @@ import { BlockNoteView } from '@blocknote/mantine';
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSupabaseUser } from '../../contexts/UserContext';
 
 // Define proper types for the BlockNoteEditor props
 interface BlockNoteEditorProps {
@@ -78,6 +79,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({ onClose, noteId, note
   const [showSaved, setShowSaved] = useState<boolean>(false);
   const editorRef = useRef<BlockNoteEditorCore | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { getSupabaseClient } = useSupabaseUser();
   
   // When noteContent changes (after loading), update the editor content
   useEffect(() => {
@@ -191,10 +193,25 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({ onClose, noteId, note
   }, []);
   
   // Safe onChange handler
-  const handleEditorChange = useCallback(() => {
+  const handleEditorChange = useCallback(async () => {
     try {
       setIsLoading(true);
       const document = getEditorDocument();
+      // Properly await the markdown conversion
+      const markdown = await editorRef.current?.blocksToMarkdownLossy();
+      if (markdown) {
+        const supabaseClient = await getSupabaseClient();
+        const { data, error } = await supabaseClient
+          .from('space_files')
+          .update({ note_content: markdown })
+          .eq('id', noteId)
+          .select();
+        
+        if (error) {
+          console.error("Error updating note content:", error);
+          throw error;
+        }
+      }
       if (document) {
         const content = JSON.stringify(document);
         onSave(content);

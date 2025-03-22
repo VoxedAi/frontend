@@ -182,7 +182,7 @@ export default function SignInUp() {
                             Sign In
                         </button>
                     </SignInButton>
-                    <SignUpButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/spaces"}>
+                    <SignUpButton mode="modal" fallbackRedirectUrl={"/sign-in"} forceRedirectUrl={"/spaces"} >
                         <button className="bg-secondary color-primary border border-adaptive py-3 px-6 rounded-lg font-semibold cursor-pointer transition-all duration-200 hover-bg-adaptive hover:translate-y-[-2px] no-underline">
                             Sign Up
                         </button>

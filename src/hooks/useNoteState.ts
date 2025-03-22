@@ -16,7 +16,7 @@ interface NoteState {
 export function useNoteState(): NoteState {
   // Use search params to check if a note is open
   const [searchParams] = useSearchParams();
-  const { supabaseUserId, getSupabaseClient } = useSupabaseUser();
+  const { getSupabaseClient } = useSupabaseUser();
   
   // State for note content
   const [noteContent, setNoteContent] = useState<string | null>(null);
@@ -52,22 +52,13 @@ export function useNoteState(): NoteState {
       console.log('Fetching note content for ID:', noteId);
       const supabaseClient = await getSupabaseClient();
 
-      const { data: note, error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('space_files')
-        .select('file_path')
+        .select('note_content')
         .eq('id', noteId)
         .single();
       if (error) {
         console.error('Error fetching note:', error);
-        return null;
-      }
-      console.log('Retrieved note and fetching content:', note);
-      // Fetch note from supabase
-      const { data, error: downloadError } = await supabaseClient.storage
-        .from('Vox')
-        .download(note.file_path);
-      if (downloadError) {
-        console.error('Error fetching note content:', downloadError);
         return null;
       }
       console.log('Retrieved note content:', data);
@@ -78,7 +69,7 @@ export function useNoteState(): NoteState {
       }
       
       // Read the blob data as text
-      const content = await data.text();
+      const content = data.note_content;
       
       // Cache the content in state for potential reuse
       setNoteContent(content);

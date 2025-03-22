@@ -10,6 +10,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { useNoteState } from "../../hooks/useNoteState";
 
 // Define a custom interface for code component props (taken from ChatView)
 interface CodeComponentProps {
@@ -124,6 +125,9 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
   // Simplified state for just two question types
   const [isCodingQuestion, setIsCodingQuestion] = useState(false);
   const [isNoteQuestion, setIsNoteQuestion] = useState(false);
+  
+  // Use our note state hook to check if a note is open
+  const { isNoteOpen, noteId, noteContent, fetchNoteContent } = useNoteState();
 
   // Create a new session when component mounts or ensure a session exists
   useEffect(() => {
@@ -315,6 +319,23 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
         ...messages,
         userMessage,
       ]);
+      
+      // Check if a note is open and fetch its content if needed
+      let noteContent: string | null = null;
+      console.log("isNoteOpen", isNoteOpen);
+      if (isNoteOpen) {
+        console.log("Note is open, fetching note content...");
+        try {
+          noteContent = await fetchNoteContent();
+          if (noteContent) {
+            console.log(`Successfully fetched note content (${noteContent.length} characters)`);
+          } else {
+            console.warn("No note content could be fetched");
+          }
+        } catch (error) {
+          console.error("Error fetching note content:", error);
+        }
+      }
 
       // Stream the response
       let finalContent = "";
@@ -327,6 +348,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
         user?.id || null,
         isCodingQuestion,
         isNoteQuestion,
+        undefined, // noteToggledFiles - using default
+        noteContent || undefined, // Only pass noteContent if it exists
       );
 
       // Save the response to the database

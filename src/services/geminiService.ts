@@ -16,6 +16,7 @@ import { getToggledFiles } from "./userService";
  * @param isCodingQuestion Whether this is a coding-related question
  * @param isNoteQuestion Whether this is a note-related question
  * @param noteToggledFiles Optional array of note file IDs to use when isNoteQuestion is true
+ * @param noteContent Optional note content to include when a note is open
  */
 export async function streamChatWithGemini(
   history: Message[],
@@ -24,6 +25,7 @@ export async function streamChatWithGemini(
   isCodingQuestion: boolean = false,
   isNoteQuestion: boolean = false,
   noteToggledFiles?: string[],
+  noteContent?: string,
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
@@ -66,29 +68,37 @@ export async function streamChatWithGemini(
       console.log("Toggled files IDs:", toggledFilesIds);
     }
 
+    // Prepare the base query request
+    const baseQueryRequest = {
+      query: exactUserQuery,
+      top_k: 5,
+      model_name: MODEL_NAME,
+      use_rag: true,
+      stream: true,
+      user_id: userId,
+      is_coding_question: isCodingQuestion,
+    };
+
+    // Add noteContent to the request if provided
+    if (noteContent) {
+      console.log("Including note content in query:", noteContent.substring(0, 100) + (noteContent.length > 100 ? "..." : ""));
+      // Create the queryRequest with noteContent
+      const notePrompt = "\n\nThe user is currently writing a note alongside this query. Note that the query may be irrelevant to the note content in such case ignore the note content; otherwise use it to help answer the query. Note content: " + noteContent;
+      baseQueryRequest.query += notePrompt;
+      
+      queryRequest = baseQueryRequest;
+    } else {
+      queryRequest = baseQueryRequest;
+    }
+
+    // Add filter for toggled files if available
     if (toggledFilesIds) {
-      // Prepare the query request with the exact user query
       queryRequest = {
-        query: exactUserQuery,
-        top_k: 5,
-        model_name: MODEL_NAME,
-        use_rag: true,
-        stream: true,
-        user_id: userId,
-        is_coding_question: isCodingQuestion,
+        ...queryRequest,
         filter: { "file_id": { "$in": toggledFilesIds } },
       };
-    } else {
-      queryRequest = {
-        query: exactUserQuery,
-        top_k: 5,
-        model_name: MODEL_NAME,
-        use_rag: true,
-        stream: true,
-        user_id: userId,
-        is_coding_question: isCodingQuestion,
-      };
     }
+
     console.log("Sending query request:", queryRequest);
 
     // Make the API request with fetch to support streaming

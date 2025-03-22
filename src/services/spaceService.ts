@@ -3,6 +3,7 @@ import type { Space } from "../types/space";
 import type { ChatMessage, ChatSession } from "../types/chat";
 import { addSpaceToWorkspace } from "./workspaceService";
 import { streamChatWithGemini } from "./geminiService";
+import { useNoteState } from "../hooks/useNoteState";
 
 /**
  * Create a new space for a user
@@ -459,6 +460,8 @@ export function parseStreamingResponse(streamData: string): string {
  * @param messageText The message text to send
  * @param sandboxData Optional sandbox state data to include
  * @param onStreamContent Callback for streaming content updates
+ * @param isNoteQuestion Whether the message is a note question
+ * @param noteContent Optional note content for the message
  * @returns Complete operation result
  */
 export async function sendAndStreamChatMessage(
@@ -472,6 +475,8 @@ export async function sendAndStreamChatMessage(
     code: string;
     consoleOutput?: string;
   },
+  isNoteQuestion: boolean = false,
+  noteContent?: string
 ): Promise<{
   success: boolean;
   userMessageResult?: { success: boolean; data?: ChatMessage; error?: any };
@@ -535,6 +540,10 @@ export async function sendAndStreamChatMessage(
         finalResponse = content;
       },
       userId,
+      sandboxData !== undefined,
+      isNoteQuestion,
+      undefined,
+      noteContent,
     );
 
     console.log("Streaming complete. Saving AI message to Supabase");

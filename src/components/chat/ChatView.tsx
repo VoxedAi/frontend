@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
-import { ClipboardIcon, CheckIcon } from "lucide-react";
+import { ClipboardIcon, CheckIcon, ChevronDown } from "lucide-react";
 import { ChatMessage } from "../../types/chat";
+import { type Model, DEFAULT_MODEL, MODELS, MODEL_DISPLAY_NAMES } from "../../types/models";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
@@ -70,6 +71,8 @@ interface ChatViewProps {
   setIsCodingQuestion: (value: boolean) => void;
   isNoteQuestion: boolean;
   setIsNoteQuestion: (value: boolean) => void;
+  selectedModel?: Model;
+  setSelectedModel?: (model: Model) => void;
   onBackClick: () => void;
   sidebarOpen?: boolean;
 }
@@ -131,6 +134,8 @@ const ChatView: React.FC<ChatViewProps> = ({
   setIsCodingQuestion,
   isNoteQuestion,
   setIsNoteQuestion,
+  selectedModel = DEFAULT_MODEL,
+  setSelectedModel,
   onBackClick,
   sidebarOpen,
 }) => {
@@ -140,6 +145,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const [endSpacerHeight, setEndSpacerHeight] = useState(64);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
   // CSS for the pulse animation
   const pulseAnimation = `
@@ -258,6 +264,21 @@ const ChatView: React.FC<ChatViewProps> = ({
       checkIfUserAtBottom();
     }
   }, [isStreaming, messages.length, lastMessageCount]);
+
+  // Toggle the model dropdown
+  const toggleModelDropdown = () => {
+    if (!isStreamingState) {
+      setIsModelDropdownOpen(!isModelDropdownOpen);
+    }
+  };
+  
+  // Handle model selection
+  const handleModelSelect = (model: Model) => {
+    if (setSelectedModel) {
+      setSelectedModel(model);
+    }
+    setIsModelDropdownOpen(false);
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -465,6 +486,50 @@ const ChatView: React.FC<ChatViewProps> = ({
           </div>
           <div className="flex items-center px-4 py-2 justify-between">
             <div className="space-x-2 flex items-center">
+              {/* Model selector dropdown - Sleek, minimal, opens upward */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={toggleModelDropdown}
+                  disabled={isStreamingState}
+                  className={`
+                    flex h-8 items-center justify-between
+                    rounded-full border p-1 px-3
+                    text-[13px] font-medium
+                    border-gray-200 dark:border-gray-700
+                    transition-colors
+                    ${isStreamingState ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"}
+                  `}
+                  aria-expanded={isModelDropdownOpen}
+                  aria-haspopup="true"
+                >
+                  <span className="mr-1">{MODEL_DISPLAY_NAMES[selectedModel]}</span>
+                  <ChevronDown size={12} className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isModelDropdownOpen && (
+                  <div className="absolute z-10 bottom-full mb-1 left-0 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-sm min-w-[120px]">
+                    <ul role="menu" aria-orientation="vertical" aria-labelledby="model-menu">
+                      {Object.entries(MODELS).map(([key, value]) => (
+                        <li key={key}>
+                          <button
+                            type="button"
+                            className={`
+                              w-full text-left px-3 py-1.5
+                              ${value === selectedModel ? 'bg-gray-50 dark:bg-gray-700' : ''} 
+                              hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                            `}
+                            onClick={() => handleModelSelect(value)}
+                          >
+                            {MODEL_DISPLAY_NAMES[value]}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               {/* Coding Question Toggle Button */}
               <button
                 type="button"

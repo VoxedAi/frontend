@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { ChatSession } from "../../types/chat";
+import { ChevronDown } from "lucide-react";
+import { Model, DEFAULT_MODEL, MODELS, MODEL_DISPLAY_NAMES } from "../../types/models";
 import Tooltip from "../common/Tooltip";
 
 interface HomeViewProps {
@@ -13,6 +15,8 @@ interface HomeViewProps {
   setIsCodingQuestion: (value: boolean) => void;
   isNoteQuestion: boolean;
   setIsNoteQuestion: (value: boolean) => void;
+  selectedModel?: Model;
+  setSelectedModel?: (model: Model) => void;
   chatSessions: ChatSession[];
   onChatSessionClick: (session: ChatSession) => void;
   onViewAllClick: () => void;
@@ -29,10 +33,29 @@ const HomeView: React.FC<HomeViewProps> = ({
   setIsCodingQuestion,
   isNoteQuestion,
   setIsNoteQuestion,
+  selectedModel = DEFAULT_MODEL,
+  setSelectedModel,
   chatSessions,
   onChatSessionClick,
   onViewAllClick,
 }) => {
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  
+  // Toggle the model dropdown
+  const toggleModelDropdown = () => {
+    if (!isStreaming) {
+      setIsModelDropdownOpen(!isModelDropdownOpen);
+    }
+  };
+  
+  // Handle model selection
+  const handleModelSelect = (model: Model) => {
+    if (setSelectedModel) {
+      setSelectedModel(model);
+    }
+    setIsModelDropdownOpen(false);
+  };
+
   return (
     <>
       {/* Initial view with centered chat bar */}
@@ -67,6 +90,50 @@ const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="flex items-center mx-auto px-4 py-4 justify-between">
                 <div className="space-x-2 flex items-center relative ml-1">
+                  {/* Model selector dropdown - Sleek, minimal, opens upward */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={toggleModelDropdown}
+                      disabled={isStreaming}
+                      className={`
+                        flex h-8 items-center justify-between
+                        rounded-full border p-1 px-3
+                        text-[13px] font-medium
+                        border-gray-200 dark:border-gray-700
+                        transition-colors
+                        ${isStreaming ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"}
+                      `}
+                      aria-expanded={isModelDropdownOpen}
+                      aria-haspopup="true"
+                    >
+                      <span className="mr-1">{MODEL_DISPLAY_NAMES[selectedModel]}</span>
+                      <ChevronDown size={12} className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isModelDropdownOpen && (
+                      <div className="absolute z-10 bottom-full mb-1 left-0 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-sm min-w-[120px]">
+                        <ul role="menu" aria-orientation="vertical" aria-labelledby="model-menu">
+                          {Object.entries(MODELS).map(([key, value]) => (
+                            <li key={key}>
+                              <button
+                                type="button"
+                                className={`
+                                  w-full text-left px-3 py-1.5
+                                  ${value === selectedModel ? 'bg-gray-50 dark:bg-gray-700' : ''} 
+                                  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                                `}
+                                onClick={() => handleModelSelect(value)}
+                              >
+                                {MODEL_DISPLAY_NAMES[value]}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Coding Question Toggle Button */}
                   <Tooltip
                     content="Adds code as context"

@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { MODEL_DISPLAY_NAMES, MODELS, type Model, DEFAULT_MODEL } from "../../types/models";
+import { ChevronDown } from "lucide-react";
 
 interface PilotInputProps {
   inputMessage: string;
@@ -11,6 +13,8 @@ interface PilotInputProps {
   setIsCodingQuestion: (value: boolean) => void;
   isNoteQuestion: boolean;
   setIsNoteQuestion: (value: boolean) => void;
+  selectedModel?: Model;
+  setSelectedModel?: (model: Model) => void;
 }
 
 /**
@@ -27,7 +31,26 @@ const PilotInput: React.FC<PilotInputProps> = ({
   setIsCodingQuestion,
   isNoteQuestion,
   setIsNoteQuestion,
+  selectedModel = DEFAULT_MODEL,
+  setSelectedModel,
 }) => {
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  
+  // Toggle the model dropdown
+  const toggleModelDropdown = () => {
+    if (!isStreaming) {
+      setIsModelDropdownOpen(!isModelDropdownOpen);
+    }
+  };
+  
+  // Handle model selection
+  const handleModelSelect = (model: Model) => {
+    if (setSelectedModel) {
+      setSelectedModel(model);
+    }
+    setIsModelDropdownOpen(false);
+  };
+
   return (
     <div className="px-2 pb-2 lg:px-4 lg:pb-4">
       <form onSubmit={handleSendMessage} className="relative">
@@ -55,6 +78,50 @@ const PilotInput: React.FC<PilotInputProps> = ({
           </div>
           <div className="flex items-center mx-auto px-2 py-1 lg:px-3 lg:py-2 justify-between">
             <div className="space-x-1 flex items-center relative">
+              {/* Model selector dropdown - Sleek, minimal, opens upward */}
+                <div className="relative">
+                <button
+                    type="button"
+                    onClick={toggleModelDropdown}
+                    disabled={isStreaming}
+                    className={`
+                    flex h-6 items-center justify-between
+                    rounded-full border p-0.5 px-2
+                    text-xs font-medium
+                    border-gray-200 dark:border-gray-700
+                    transition-colors
+                    ${isStreaming ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"}
+                    `}
+                    aria-expanded={isModelDropdownOpen}
+                    aria-haspopup="true"
+                >
+                    <span className="mr-1">{MODEL_DISPLAY_NAMES[selectedModel]}</span>
+                    <ChevronDown size={10} className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isModelDropdownOpen && (
+                    <div className="absolute z-10 bottom-full mb-1 left-0 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-xs min-w-[100px]">
+                    <ul role="menu" aria-orientation="vertical" aria-labelledby="model-menu">
+                        {Object.entries(MODELS).map(([key, value]) => (
+                        <li key={key}>
+                            <button
+                            type="button"
+                            className={`
+                                w-full text-left px-2.5 py-1.5
+                                ${value === selectedModel ? 'bg-gray-50 dark:bg-gray-700' : ''} 
+                                hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                            `}
+                            onClick={() => handleModelSelect(value)}
+                            >
+                            {MODEL_DISPLAY_NAMES[value]}
+                            </button>
+                        </li>
+                        ))}
+                    </ul>
+                    </div>
+                )}
+                </div>
+              
               {/* Toggle for code context */}
               <button
                 type="button"

@@ -1,11 +1,9 @@
-// Model configuration - this is now used as model_name for the API
-const MODEL_NAME = "gemini-1.5-flash-8b";
-
 // API endpoint
 const API_URL = "https://voxed.aidanandrews.org/api/v1/query";
 
 // Import types from types directory
 import { type Message, type MessageRole } from "../types/gemini";
+import { MODELS, DEFAULT_MODEL, type Model } from "../types/models";
 import { getToggledFiles } from "./userService";
 
 /**
@@ -17,6 +15,7 @@ import { getToggledFiles } from "./userService";
  * @param isNoteQuestion Whether this is a note-related question
  * @param noteToggledFiles Optional array of note file IDs to use when isNoteQuestion is true
  * @param noteContent Optional note content to include when a note is open
+ * @param modelName Optional model name to use (defaults to NORMAL model)
  */
 export async function streamChatWithGemini(
   history: Message[],
@@ -26,9 +25,11 @@ export async function streamChatWithGemini(
   isNoteQuestion: boolean = false,
   noteToggledFiles?: string[],
   noteContent?: string,
+  modelName: Model = DEFAULT_MODEL,
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
+    console.log("Using model:", modelName);
 
     // Validate history array
     if (!history || history.length === 0) {
@@ -72,7 +73,7 @@ export async function streamChatWithGemini(
     const baseQueryRequest = {
       query: exactUserQuery,
       top_k: 5,
-      model_name: MODEL_NAME,
+      model_name: modelName, // Use the provided model name
       use_rag: true,
       stream: true,
       user_id: userId,

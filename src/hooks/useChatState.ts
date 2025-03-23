@@ -1,10 +1,12 @@
 import { useUrlState } from './useUrlState';
+import { Model, DEFAULT_MODEL } from '../types/models';
 
 export type ChatStateOptions = {
   currentSessionId?: string | null;
   isCodingQuestion?: boolean;
   isNoteQuestion?: boolean;
   selectedView?: 'initial' | 'chat' | 'grid';
+  selectedModel?: Model;
 };
 
 const defaultChatState: ChatStateOptions = {
@@ -12,6 +14,7 @@ const defaultChatState: ChatStateOptions = {
   isCodingQuestion: false,
   isNoteQuestion: false,
   selectedView: 'initial',
+  selectedModel: DEFAULT_MODEL,
 };
 
 /**

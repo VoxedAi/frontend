@@ -3,6 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../../services/supabase";
 import { streamChatWithGemini, formatMessagesForGemini } from "../../services/geminiService";
 import { type ChatMessage, type ChatSession } from "../../types/chat";
+import { type Model, DEFAULT_MODEL } from "../../types/models";
 import ChatView from "../chat/ChatView";
 import PilotInput from "./PilotInput";
 import Markdown from "react-markdown";
@@ -125,6 +126,9 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
   // Simplified state for just two question types
   const [isCodingQuestion, setIsCodingQuestion] = useState(false);
   const [isNoteQuestion, setIsNoteQuestion] = useState(false);
+  
+  // Add state for model selection
+  const [selectedModel, setSelectedModel] = useState<Model>(DEFAULT_MODEL);
   
   // Use our note state hook to check if a note is open
   const { isNoteOpen, noteId, noteContent, fetchNoteContent } = useNoteState();
@@ -350,6 +354,7 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
         isNoteQuestion,
         undefined, // noteToggledFiles - using default
         noteContent || undefined, // Only pass noteContent if it exists
+        selectedModel, // Pass the selected model
       );
 
       // Save the response to the database
@@ -420,6 +425,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
           setIsCodingQuestion={setIsCodingQuestion}
           isNoteQuestion={isNoteQuestion}
           setIsNoteQuestion={setIsNoteQuestion}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
           onBackClick={handleBackClick}
           sidebarOpen={sidebarOpen}
         />
@@ -556,6 +563,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
         setIsCodingQuestion={setIsCodingQuestion}
         isNoteQuestion={isNoteQuestion}
         setIsNoteQuestion={setIsNoteQuestion}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
       />
     </div>
   );

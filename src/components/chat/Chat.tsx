@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import ReaPt, { useState, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   streamChatWithGemini,
@@ -7,6 +7,7 @@ import {
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../../services/supabase";
 import { type ChatMessage, type ChatSession } from "../../types/chat";
+import { type Model, DEFAULT_MODEL } from "../../types/models";
 import { useChatState } from "../../hooks";
 import HomeView from "./HomeView";
 import ChatView from "./ChatView";
@@ -38,10 +39,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
     isCodingQuestion: false,
     isNoteQuestion: false,
     selectedView: 'initial',
+    selectedModel: DEFAULT_MODEL,
   });
   
   // Destructure values from chatState for easier access
-  const { currentSessionId, isCodingQuestion, isNoteQuestion, selectedView } = chatState;
+  const { currentSessionId, isCodingQuestion, isNoteQuestion, selectedView, selectedModel } = chatState;
   
   // Computed values based on chatState
   const isInChat = selectedView === 'chat';
@@ -51,6 +53,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
   // Setter functions to update individual states
   const setIsCodingQuestion = (value: boolean) => setChatState({ isCodingQuestion: value });
   const setIsNoteQuestion = (value: boolean) => setChatState({ isNoteQuestion: value });
+  const setSelectedModel = (model: Model) => setChatState({ selectedModel: model });
   const setCurrentChatSession = (session: ChatSession | null) => setChatState({ 
     currentSessionId: session?.id || null,
     selectedView: session ? 'chat' : 'initial'
@@ -378,6 +381,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
         user?.id || null,
         isCodingQuestion,
         isNoteQuestion,
+        undefined, // noteToggledFiles
+        undefined, // noteContent
+        selectedModel, // Pass the selected model
       );
 
       console.log("Stream completed, final content:", finalContent);
@@ -537,6 +543,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
           setIsCodingQuestion={setIsCodingQuestion}
           isNoteQuestion={!!isNoteQuestion}
           setIsNoteQuestion={setIsNoteQuestion}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
           chatSessions={chatSessions}
           onChatSessionClick={handleChatSessionClick}
           onViewAllClick={handleViewAllClick}
@@ -564,6 +572,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
           setIsCodingQuestion={setIsCodingQuestion}
           isNoteQuestion={!!isNoteQuestion}
           setIsNoteQuestion={setIsNoteQuestion}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
           onBackClick={handleBackClick}
           sidebarOpen={sidebarOpen}
         />

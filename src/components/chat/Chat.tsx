@@ -12,12 +12,14 @@ import { useChatState } from "../../hooks";
 import HomeView from "./HomeView";
 import ChatView from "./ChatView";
 import ChatGrid from "./ChatGrid";
+import { useNoteState } from "../../hooks/useNoteState";
 
 interface ChatInterfaceProps {
   sidebarOpen?: boolean;
+  simplified?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified = false }) => {
   // This component uses URL state management for persistent state
   // We store currentSessionId, view mode, and chat settings in the URL
   // This allows for sharing links and preserving state on refresh
@@ -41,6 +43,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
     selectedView: 'initial',
     selectedModel: DEFAULT_MODEL,
   });
+  
+  // Add the note state hook to check if a note is open
+  const { isNoteOpen, noteId, noteContent, fetchNoteContent } = useNoteState();
   
   // Destructure values from chatState for easier access
   const { currentSessionId, isCodingQuestion, isNoteQuestion, selectedView, selectedModel } = chatState;
@@ -367,6 +372,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
       ]);
       console.log("Formatted messages for Gemini:", formattedMessages);
 
+      // Check if a note is open and fetch its content if needed
+      let noteContent: string | null = null;
+      console.log("isNoteOpen", isNoteOpen);
+      if (isNoteOpen) {
+        console.log("Note is open, fetching note content...");
+        try {
+          noteContent = await fetchNoteContent();
+          if (noteContent) {
+            console.log(`Successfully fetched note content (${noteContent.length} characters)`);
+          } else {
+            console.warn("No note content could be fetched");
+          }
+        } catch (error) {
+          console.error("Error fetching note content:", error);
+        }
+      }
       // Track final content in a local variable
       let finalContent = "";
 
@@ -382,7 +403,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
         isCodingQuestion,
         isNoteQuestion,
         undefined, // noteToggledFiles
-        undefined, // noteContent
+        noteContent || undefined,
         selectedModel, // Pass the selected model
       );
 
@@ -530,7 +551,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
   }, [currentSessionId]);
 
   return (
-    <div className="flex flex-col h-screen w-full">
+    <div className={`flex flex-col ${simplified ? 'h-full' : 'h-screen'} w-full ${simplified ? 'relative' : ''}`}>
       {!isInChat && !isInGrid ? (
         <HomeView
           inputMessage={inputMessage}
@@ -576,6 +597,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen }) => {
           setSelectedModel={setSelectedModel}
           onBackClick={handleBackClick}
           sidebarOpen={sidebarOpen}
+          simplified={simplified}
         />
       )}
     </div>

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
-import { ClipboardIcon, CheckIcon, ChevronDown } from "lucide-react";
-import { ChatMessage } from "../../types/chat";
+import { ClipboardIcon, CheckIcon, ChevronDown, BrainCircuit } from "lucide-react";
+import { ChatMessage, ReasoningData } from "../../types/chat";
 import { type Model, DEFAULT_MODEL, MODELS, MODEL_DISPLAY_NAMES } from "../../types/models";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Tooltip from "../common/Tooltip";
+import 'katex/dist/katex.min.css';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 // Define a custom interface for code component props
 interface CodeComponentProps {
@@ -75,6 +78,7 @@ interface ChatViewProps {
   setSelectedModel?: (model: Model) => void;
   onBackClick: () => void;
   sidebarOpen?: boolean;
+  simplified?: boolean;
 }
 
 // Markdown code block component with copy button and syntax highlighting
@@ -138,6 +142,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   setSelectedModel,
   onBackClick,
   sidebarOpen,
+  simplified = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +151,12 @@ const ChatView: React.FC<ChatViewProps> = ({
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  
+  // Map to store reasoning data for each message
+  const [reasoningData, setReasoningData] = useState<Map<string, ReasoningData>>(new Map());
+  // For streaming message reasoning
+  const [streamingReasoning, setStreamingReasoning] = useState<string>("");
+  const [showStreamingReasoning, setShowStreamingReasoning] = useState<boolean>(false);
 
   // CSS for the pulse animation
   const pulseAnimation = `
@@ -186,8 +197,8 @@ const ChatView: React.FC<ChatViewProps> = ({
     const messagesEndHeight = messagesEndRef.current.clientHeight || 0;
     const scrollHeight = messageContainerRef.current.scrollHeight;
     const contentHeight = scrollHeight - messagesEndHeight;
-    const chatInputHeight = 42; // Approximate height of chat input
-    const bufferSpace = 24; // Extra space to ensure comfortable reading
+    const chatInputHeight = simplified ? 64 : 42; // Increase height buffer for simplified mode
+    const bufferSpace = simplified ? 32 : 24; // Increase buffer space for simplified mode
     
     // For small screens, keep it minimal
     const isMobileDevice = window.innerWidth < 768;
@@ -199,7 +210,7 @@ const ChatView: React.FC<ChatViewProps> = ({
       newHeight = chatInputHeight + bufferSpace;
     } else {
       // Content fits, use larger spacing on desktop, smaller on mobile
-      newHeight = isMobileDevice ? 64 : 96;
+      newHeight = isMobileDevice ? 64 : (simplified ? 120 : 96);
     }
     
     setEndSpacerHeight(newHeight);
@@ -236,15 +247,83 @@ const ChatView: React.FC<ChatViewProps> = ({
     };
   }, []);
   
-  // Handle height calculation during streaming without forcing scroll
+  // Extract reasoning content from message text
+  const extractReasoning = (content: string): { text: string, reasoning: string | null } => {
+    const reasoningRegex = /<!--reasoning:(.*?)-->/s;
+    const match = content.match(reasoningRegex);
+    
+    if (match && match[1]) {
+      // Found reasoning content
+      console.log("Found reasoning content - length:", match[1].length);
+      
+      // Create the cleaned text by removing the reasoning comment
+      const cleanedText = content.replace(reasoningRegex, '');
+      console.log("Removed reasoning comment - text length before:", content.length, "after:", cleanedText.length);
+      
+      // Return the content without reasoning comment and the reasoning content
+      return {
+        text: cleanedText,
+        reasoning: match[1].trim()
+      };
+    }
+    
+    return { text: content, reasoning: null };
+  };
+  
+  // Process streaming content and check for reasoning tokens
   useEffect(() => {
     if (isStreaming && streamingContent) {
+      const { text, reasoning } = extractReasoning(streamingContent);
+      
+      // If reasoning exists in the streaming content
+      if (reasoning) {
+        console.log("Found streaming reasoning - length:", reasoning.length);
+        setStreamingReasoning(reasoning);
+        
+        // Note: We don't modify streamingContent here since it's controlled by the parent component
+        // The parent component will render 'text' directly from the SSE stream
+      }
+      
       // Only calculate spacer height during streaming, don't auto-scroll
       calculateSpacerHeight();
       checkIfUserAtBottom();
     }
   }, [isStreaming, streamingContent]);
-
+  
+  // Handle streaming completion - add streaming reasoning to the message reasoning data
+  useEffect(() => {
+    if (!isStreaming && streamingReasoning && messages.length > 0) {
+      // When streaming completes, add the reasoning data to the last message
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage.is_user && streamingReasoning) {
+        console.log("Streaming completed - storing reasoning for message:", lastMessage.id.substring(0, 8));
+        
+        // Add the reasoning data to the map (overwrite if exists)
+        setReasoningData(prev => {
+          const newMap = new Map(prev);
+          // Set reasoning to be hidden by default
+          newMap.set(lastMessage.id, { 
+            content: streamingReasoning, 
+            visible: false 
+          });
+          return newMap;
+        });
+        
+        // Make sure the message content doesn't contain reasoning tags
+        // (This shouldn't happen normally since it's added after streaming,
+        // but this is a safety check)
+        if (lastMessage.content.includes('<!--reasoning:')) {
+          const { text } = extractReasoning(lastMessage.content);
+          lastMessage.content = text;
+          console.log("Removed reasoning tags from last message after streaming");
+        }
+        
+        // Clear streaming reasoning now that it's stored in the map
+        setStreamingReasoning("");
+      }
+    }
+  }, [isStreaming, messages, streamingReasoning]);
+  
   // Scroll to bottom when a new message is added (user submits a message)
   useEffect(() => {
     if (messages.length > lastMessageCount) {
@@ -257,14 +336,78 @@ const ChatView: React.FC<ChatViewProps> = ({
       calculateSpacerHeight();
     }
   }, [messages.length, lastMessageCount, isStreaming]);
-
+  
   // Just update the scroll indicator when streaming completes
   useEffect(() => {
     if (!isStreaming && lastMessageCount < messages.length) {
       checkIfUserAtBottom();
     }
   }, [isStreaming, messages.length, lastMessageCount]);
-
+  
+  // Update reasoning data for messages when they're added or changed
+  useEffect(() => {
+    // Create a local copy to track modified messages
+    let hasModifiedMessages = false;
+    
+    // Process messages to extract reasoning
+    messages.forEach(message => {
+      if (!message.is_user) {
+        // Check if this message contains reasoning
+        const { text, reasoning } = extractReasoning(message.content);
+        
+        if (reasoning) {
+          // Store reasoning data for this message (or update if already exists)
+          setReasoningData(prev => {
+            const newMap = new Map(prev);
+            // If we already have reasoning data, preserve visibility state
+            const existingData = prev.get(message.id);
+            newMap.set(message.id, { 
+              content: reasoning, 
+              visible: existingData ? existingData.visible : false // Default to hidden for new items
+            });
+            return newMap;
+          });
+          
+          // Update the message content to remove the reasoning comment
+          if (message.content !== text) {
+            message.content = text;
+            hasModifiedMessages = true;
+            console.log(`Modified message ${message.id.substring(0, 8)} to remove reasoning comment`);
+          }
+        }
+      }
+    });
+    
+    // Log summary
+    if (hasModifiedMessages) {
+      console.log("Completed processing messages - removed reasoning tags from content");
+    }
+  }, [messages]);
+  
+  // Toggle reasoning visibility
+  const toggleReasoning = (messageId: string) => {
+    setReasoningData(prev => {
+      const newMap = new Map(prev);
+      const messageData = newMap.get(messageId);
+      
+      if (messageData) {
+        newMap.set(messageId, { ...messageData, visible: !messageData.visible });
+      }
+      
+      return newMap;
+    });
+  };
+  
+  // Toggle streaming reasoning visibility
+  const toggleStreamingReasoning = () => {
+    setShowStreamingReasoning(prev => !prev);
+  };
+  
+  // Initialize the streaming reasoning visibility state to be hidden by default
+  useEffect(() => {
+    setShowStreamingReasoning(false);
+  }, []);
+  
   // Toggle the model dropdown
   const toggleModelDropdown = () => {
     if (!isStreamingState) {
@@ -281,7 +424,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className={`flex flex-col h-full ${simplified ? 'relative pb-4' : ''}`}>
       {/* Style tag for custom animations */}
       <style>{pulseAnimation}</style>
     
@@ -297,7 +440,10 @@ const ChatView: React.FC<ChatViewProps> = ({
       </button>
       
       {/* Message display area */}
-      <div ref={messageContainerRef} className="flex-1 overflow-y-auto pt-4 px-4 pb-24 relative">
+      <div 
+        ref={messageContainerRef}
+        className={`flex-1 overflow-y-auto ${simplified ? 'overflow-x-hidden' : ''} pt-4 px-4 ${simplified ? '' : 'pb-24'} relative scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent ${simplified ? 'max-h-[calc(100%-120px)]' : ''}`}
+      >
         <div className="max-w-3xl mx-auto">
           {messages.map((message) => (
             <div
@@ -311,8 +457,8 @@ const ChatView: React.FC<ChatViewProps> = ({
               ) : (
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeRaw, rehypeKatex]}
                     components={{
                       code: (props) => {
                         const { inline, className, children, ...rest } = props as CodeComponentProps;
@@ -351,22 +497,50 @@ const ChatView: React.FC<ChatViewProps> = ({
                   >
                     {message.content}
                   </Markdown>
-                  <button
-                    onClick={() => handleCopyCode(message.content)}
-                    className="mt-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm flex items-center"
-                  >
-                    {copiedText === message.content ? (
-                      <>
-                        <CheckIcon size={16} className="mr-1" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <ClipboardIcon size={16} className="mr-1" />
-                        Copy
-                      </>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={() => handleCopyCode(message.content)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm flex items-center"
+                    >
+                      {copiedText === message.content ? (
+                        <>
+                          <CheckIcon size={16} className="mr-1" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardIcon size={16} className="mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* Only show reasoning toggle if there's reasoning data for this message */}
+                    {reasoningData.has(message.id) && (
+                      <button
+                        onClick={() => toggleReasoning(message.id)}
+                        className={`text-sm flex items-center ml-4 ${
+                          reasoningData.get(message.id)?.visible 
+                            ? 'text-blue-500 dark:text-blue-400' 
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        <BrainCircuit size={16} className="mr-1" />
+                        {reasoningData.get(message.id)?.visible ? 'Hide reasoning' : 'Show reasoning'}
+                      </button>
                     )}
-                  </button>
+                  </div>
+                  
+                  {/* Reasoning content display */}
+                  {reasoningData.get(message.id)?.visible && (
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-md">
+                      <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">AI Reasoning:</h4>
+                      <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                        {reasoningData.get(message.id)?.content}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -377,8 +551,8 @@ const ChatView: React.FC<ChatViewProps> = ({
             <div className="mb-8 text-left">
               <div className="prose prose-gray dark:prose-invert max-w-none">
                 <Markdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeRaw, rehypeKatex]}
                   components={{
                     code: (props) => {
                       const { inline, className, children, ...rest } = props as CodeComponentProps;
@@ -417,6 +591,33 @@ const ChatView: React.FC<ChatViewProps> = ({
                 >
                   {streamingContent}
                 </Markdown>
+                
+                {/* Streaming reasoning toggle (only if there is reasoning) */}
+                {streamingReasoning && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={toggleStreamingReasoning}
+                      className={`text-sm flex items-center ${
+                        showStreamingReasoning 
+                          ? 'text-blue-500 dark:text-blue-400' 
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <BrainCircuit size={16} className="mr-1" />
+                      {showStreamingReasoning ? 'Hide reasoning' : 'Show reasoning'}
+                    </button>
+                  </div>
+                )}
+                
+                {/* Streaming reasoning content display */}
+                {streamingReasoning && showStreamingReasoning && (
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-md">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">AI Reasoning:</h4>
+                    <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      {streamingReasoning}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -433,7 +634,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         {showScrollBottom && (
           <button 
             onClick={() => scrollToBottom()}
-            className="fixed bottom-24 right-4 md:right-8 z-10 p-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-black rounded-full shadow-md hover:bg-gray-700 dark:hover:bg-gray-300 transition-all duration-200 flex items-center justify-center pulse-animation"
+            className={`${simplified ? 'absolute' : 'fixed'} bottom-24 right-4 md:right-8 z-10 p-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-black rounded-full shadow-md hover:bg-gray-700 dark:hover:bg-gray-300 transition-all duration-200 flex items-center justify-center pulse-animation`}
             aria-label="Scroll to bottom"
           >
             <svg 
@@ -456,10 +657,12 @@ const ChatView: React.FC<ChatViewProps> = ({
       {/* Chat input area */}
       <form
         onSubmit={handleSendMessage}
-        className={`fixed bottom-4 w-full px-4 transition-all duration-300 ${
-          sidebarOpen 
-            ? 'left-[var(--sidebar-width)] right-0 max-w-3xl mx-auto' 
-            : 'left-0 right-0 max-w-3xl mx-auto'
+        className={`${simplified ? 'absolute' : 'fixed'} bottom-4 w-full px-4 transition-all duration-300 ${
+          simplified 
+            ? 'left-0 right-0 mx-auto'
+            : (sidebarOpen 
+              ? 'left-[var(--sidebar-width)] right-0 max-w-3xl mx-auto' 
+              : 'left-0 right-0 max-w-3xl mx-auto')
         }`}
       >
         <div className="backdrop-blur-md rounded-2xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-700">

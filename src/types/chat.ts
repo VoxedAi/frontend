@@ -14,6 +14,12 @@ export const ChatMessageSchema = z.object({
 // Type derived from the schema
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
+// Reasoning data interface for handling LLM reasoning tokens
+export interface ReasoningData {
+  content: string;
+  visible: boolean;
+}
+
 // ChatSession schema with Zod
 export const ChatSessionSchema = z.object({
   id: z.string().uuid(),

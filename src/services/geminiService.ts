@@ -175,6 +175,7 @@ export async function streamChatWithGemini(
  */
 function parseStreamingResponse(streamData: string): string {
   let extractedText = "";
+  let reasoningText = "";
 
   try {
     // Split the stream data into lines
@@ -191,9 +192,15 @@ function parseStreamingResponse(streamData: string): string {
           const jsonStr = line.substring(5).trim();
           const data = JSON.parse(jsonStr);
 
-          // If it's a token, add it to the extracted text
+          // If it's a regular token, add it to the extracted text
           if (data.type === "token" && data.data) {
             extractedText += data.data;
+          }
+          
+          // If it's a reasoning token, add it to the reasoning text
+          // The reasoning tokens will come from the backend with type "reasoning"
+          else if (data.type === "reasoning" && data.data) {
+            reasoningText += data.data;
           }
         } catch {
           // If JSON parsing fails, just ignore this line
@@ -221,6 +228,12 @@ function parseStreamingResponse(streamData: string): string {
         extractedText = extractedText.substring(prefix.length).trim();
         break; // Exit after removing the first matching prefix
       }
+    }
+
+    // If we have reasoning text, add it as a data attribute to the main text
+    if (reasoningText.trim()) {
+      // Store reasoning text as a data attribute that can be accessed by the ChatView component
+      return extractedText + "<!--reasoning:" + reasoningText.trim() + "-->";
     }
 
     return extractedText;

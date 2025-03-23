@@ -4,7 +4,6 @@ import { supabase } from "../../services/supabase";
 import { streamChatWithGemini, formatMessagesForGemini } from "../../services/geminiService";
 import { type ChatMessage, type ChatSession } from "../../types/chat";
 import { type Model, DEFAULT_MODEL } from "../../types/models";
-import ChatView from "../chat/ChatView";
 import PilotInput from "./PilotInput";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -12,6 +11,9 @@ import { oneDark, oneLight } from "react-syntax-highlighter/dist/cjs/styles/pris
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useNoteState } from "../../hooks/useNoteState";
+import 'katex/dist/katex.min.css';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 // Define a custom interface for code component props (taken from ChatView)
 interface CodeComponentProps {
@@ -111,7 +113,7 @@ interface VoxPilotProps {
  * This component provides a streamlined interface for chat with fewer views
  * and less complex state management compared to the full Chat component.
  */
-const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, className = "" }) => {
+const VoxPilot: React.FC<VoxPilotProps> = ({ className = "" }) => {
   const { user } = useUser();
   const [inputMessage, setInputMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -397,42 +399,6 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
     setCopiedText(text);
     setTimeout(() => setCopiedText(null), 2000);
   };
-
-  // Handle returning to main views (not implemented in pilot version)
-  const handleBackClick = () => {
-    // In the simplified version, we don't navigate back, but we could
-    // navigate to a parent component if needed
-    console.log("Back button clicked");
-  };
-
-  // If not using the simplified view, use the full ChatView component
-  if (!simplified) {
-    return (
-      <div className={`flex flex-col h-screen w-full ${className}`}>
-        <ChatView
-          messages={messages}
-          isStreaming={isStreaming}
-          streamingContent={streamingContent}
-          copiedText={copiedText}
-          handleCopyCode={handleCopyCode}
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-          handleSendMessage={handleSendMessage}
-          isStreamingState={isStreaming}
-          textareaRef={textareaRef}
-          autoResizeTextarea={autoResizeTextarea}
-          isCodingQuestion={isCodingQuestion}
-          setIsCodingQuestion={setIsCodingQuestion}
-          isNoteQuestion={isNoteQuestion}
-          setIsNoteQuestion={setIsNoteQuestion}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
-          onBackClick={handleBackClick}
-          sidebarOpen={sidebarOpen}
-        />
-      </div>
-    );
-  }
   
   // For the simplified view, implement our own version with consistent markdown rendering
   return (
@@ -452,8 +418,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
               ) : (
                 <div className="prose prose-gray dark:prose-invert max-w-none overflow-hidden">
                   <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeRaw, rehypeKatex]}
                     components={{
                       code: (props) => {
                         const { inline, className, children, ...rest } = props as CodeComponentProps;
@@ -502,8 +468,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ sidebarOpen, simplified = false, cl
             <div className="mb-4 text-left">
               <div className="prose prose-gray dark:prose-invert max-w-none overflow-hidden">
                 <Markdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeRaw, rehypeKatex]}
                   components={{
                     code: (props) => {
                       const { inline, className, children, ...rest } = props as CodeComponentProps;

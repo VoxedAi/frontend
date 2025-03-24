@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { UserButton } from '@clerk/clerk-react';
+import { UserProfile } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
+
 import toast from 'react-hot-toast';
 import type { SpaceFile } from '../types/space';
 
@@ -86,6 +88,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [filesExpanded, setFilesExpanded] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [showNewFileMenu, setShowNewFileMenu] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const { user } = useUser();
 
   // Get file type icon
   const getFileTypeIcon = (fileType: string) => {
@@ -116,10 +120,25 @@ const Sidebar: React.FC<SidebarProps> = ({
            fileName.includes(noteSearch.toLowerCase());
   });
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setShowProfile(false)
+    }
+  }
+
+  const profile = (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleOverlayClick}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-2xl relative">
+        <UserProfile />
+      </div>
+    </div>
+  )
+
   return (
     <div className="w-60 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out">
       {/* Header - with space for the toggle button */}
       <div className="p-3 pl-16 flex items-center gap-2">
+        {showProfile && profile}
         <div className="flex items-center">
           <div className="w-6 h-6 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold">
             👨
@@ -488,13 +507,18 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Bottom menu */}
       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-auto">
-        <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+        <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          onClick={() => {
+            setShowProfile(true);
+          }}
+        >
           <div className="flex items-center">
-            <User size={16} className="text-gray-500 mr-2" />
+            {user?.imageUrl ? (
+                <img src={user.imageUrl} alt="User" className="w-5 h-5 rounded-full mr-2" />
+              ) : (
+                <User size={16} className="text-gray-500 mr-2" />
+            )}
             <span className="text-sm text-adaptive">Profile</span>
-          </div>
-          <div className="w-5 h-5 rounded-full bg-yellow-200 flex items-center justify-center text-xs">
-            <UserButton />
           </div>
         </div>
         

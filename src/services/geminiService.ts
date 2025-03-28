@@ -1,5 +1,5 @@
 // API endpoint
-const API_URL = "https://voxed.aidanandrews.org/api/v1/query";
+const API_URL = "https://voxed.aidanandrews.org/api/v1/agent/run";
 
 // Import types from types directory
 import { type Message, type MessageRole } from "../types/gemini";
@@ -16,6 +16,7 @@ import { getToggledFiles } from "./userService";
  * @param noteToggledFiles Optional array of note file IDs to use when isNoteQuestion is true
  * @param noteContent Optional note content to include when a note is open
  * @param modelName Optional model name to use (defaults to NORMAL model)
+ * @param spaceId Optional space ID for the current workspace
  */
 export async function streamChatWithGemini(
   history: Message[],
@@ -26,6 +27,7 @@ export async function streamChatWithGemini(
   noteToggledFiles?: string[],
   noteContent?: string,
   modelName: Model = DEFAULT_MODEL,
+  spaceId?: string,
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
@@ -78,6 +80,8 @@ export async function streamChatWithGemini(
       stream: true,
       user_id: userId,
       is_coding_question: isCodingQuestion,
+      space_id: spaceId,
+      view: "", // Leave blank as requested
     };
 
     // Add noteContent to the request if provided
@@ -134,6 +138,9 @@ export async function streamChatWithGemini(
         // Decode the chunk
         const chunk = decoder.decode(value, { stream: true });
         streamedContent += chunk;
+        
+        // Debug raw chunk
+        console.log("Raw chunk received:", chunk);
 
         // Parse SSE format to extract actual response content
         const updatedContent = parseStreamingResponse(streamedContent);
@@ -153,6 +160,7 @@ export async function streamChatWithGemini(
       }
 
       console.log("Stream completed successfully");
+      console.log("Final content:", actualResponse);
     } catch (streamError) {
       console.error("Error during stream processing:", streamError);
       // If we have a partial response, still return it
@@ -193,21 +201,24 @@ function parseStreamingResponse(streamData: string): string {
           const data = JSON.parse(jsonStr);
 
           // If it's a regular token, add it to the extracted text
-          if (data.type === "token" && data.data) {
-            extractedText += data.data;
+          if (data.type === "token" && data.content) {
+            extractedText += data.content;
           }
           
           // If it's a reasoning token, add it to the reasoning text
           // The reasoning tokens will come from the backend with type "reasoning"
-          else if (data.type === "reasoning" && data.data) {
-            reasoningText += data.data;
+          else if (data.type === "reasoning" && data.content) {
+            reasoningText += data.content;
           }
-        } catch {
-          // If JSON parsing fails, just ignore this line
-          console.warn("Failed to parse JSON in stream data line:", line);
+        } catch (error) {
+          // If JSON parsing fails, log the error and line for debugging
+          console.warn("Failed to parse JSON in stream data line:", line, error);
         }
       }
     }
+
+    // Log what we've extracted for debugging
+    console.log("Extracted text from SSE:", extractedText);
 
     // Trim the text first
     extractedText = extractedText.trim();

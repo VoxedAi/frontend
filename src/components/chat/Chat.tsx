@@ -405,6 +405,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
         undefined, // noteToggledFiles
         noteContent || undefined,
         selectedModel, // Pass the selected model
+        spaceId, // Pass the space ID
       );
 
       console.log("Stream completed, final content:", finalContent);

@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   Folder,
+  Link,
   Sun,
   Loader
 } from 'lucide-react';
@@ -86,6 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [filesExpanded, setFilesExpanded] = useState(false);
+  const [linksExpanded, setLinksExpanded] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [showNewFileMenu, setShowNewFileMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -474,6 +476,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
+        {/* Links Section */}
+
         {/* Create new button */}
         <div className="relative">
           <div 
@@ -535,19 +539,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
             <span className="text-sm text-adaptive">Dark mode</span>
           </div>
-          {theme === 'dark' ? (
-            <Sun size={16} className="text-gray-500" />
-          ) : (
-            <Moon size={16} className="text-gray-500" />
-          )}
         </div>
         
-        <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+        <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          onClick={() => {
+            window.open("https://voxed.ai", "_blank");
+          }}
+        >
           <div className="flex items-center">
             <Info size={16} className="text-gray-500 mr-2" />
             <span className="text-sm text-adaptive">About</span>
           </div>
-          <Info size={16} className="text-gray-500" />
         </div>
         
         <div 
@@ -560,7 +562,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <LogOut size={16} className="text-gray-500 mr-2" />
             <span className="text-sm text-adaptive">Leave</span>
           </div>
-          <LogOut size={16} className="text-gray-500" />
         </div>
       </div>
     </div>

@@ -357,6 +357,8 @@ const VoxPilot: React.FC<VoxPilotProps> = ({ className = "" }) => {
         undefined, // noteToggledFiles - using default
         noteContent || undefined, // Only pass noteContent if it exists
         selectedModel, // Pass the selected model
+        currentSession!.space_id, // Pass the space ID
+        noteId, // Pass the note ID as active file ID if a note is open
       );
 
       // Save the response to the database

@@ -20,12 +20,12 @@ import { UserProvider } from "./contexts/UserContext";
 import { useTheme } from "./contexts/ThemeContext";
 import TokenRefresher from "./components/common/TokenRefresher";
 import LoadingSpinner from "./components/common/LoadingSpinner";
+import AgentWorkflowIndicator from './pages/Test';
 
 // Web App - Lazy loaded components
 const Sandbox = lazy(() => import("./components/code/Sandbox"));
 const SpaceUI = lazy(() => import("./pages/Space"));
 const WorkspacesUI = lazy(() => import("./pages/Workspaces"));
-const ChatUI = lazy(() => import("./pages/Chat"));
 
 export default function App() {
   // Get current theme from our context
@@ -94,6 +94,14 @@ export default function App() {
               </>
             }
           />
+          <Route
+            path="/test"
+            element={
+              <>
+                <AgentWorkflowIndicator />
+              </>
+            }
+          />
 
           <Route
             path="/sign-up"
@@ -128,19 +136,6 @@ export default function App() {
               <SignedIn>
                 <Suspense fallback={<LoadingSpinner size="large" />}>
                   <SpaceUI />
-                </Suspense>
-              </SignedIn>
-              <SignedOut>
-                <Navigate to="/sign-in" />
-              </SignedOut>
-            </>
-          } />
-          <Route path="/chat" element={
-            <>
-              <SignedIn>
-                <Header />
-                <Suspense fallback={<LoadingSpinner size="large" />}>
-                  <ChatUI />
                 </Suspense>
               </SignedIn>
               <SignedOut>

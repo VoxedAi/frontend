@@ -9,6 +9,7 @@ export const ChatMessageSchema = z.object({
   content: z.string(),
   is_user: z.boolean(),
   created_at: z.string().datetime(),
+  workflow: z.array(z.any()).optional(),
 });
 
 // Type derived from the schema

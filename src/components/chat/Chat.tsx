@@ -38,8 +38,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
   // Use chatState hook to persist state in URL
   const [chatState, setChatState] = useChatState({
     currentSessionId: null,
-    isCodingQuestion: false,
-    isNoteQuestion: false,
     selectedView: 'initial',
     selectedModel: DEFAULT_MODEL,
   });
@@ -48,7 +46,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
   const { isNoteOpen, noteId, noteContent, fetchNoteContent } = useNoteState();
   
   // Destructure values from chatState for easier access
-  const { currentSessionId, isCodingQuestion, isNoteQuestion, selectedView, selectedModel } = chatState;
+  const { currentSessionId, selectedView, selectedModel } = chatState;
   
   // Computed values based on chatState
   const isInChat = selectedView === 'chat';
@@ -56,8 +54,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
   const currentChatSession = chatSessions.find(session => session.id === currentSessionId) || null;
   
   // Setter functions to update individual states
-  const setIsCodingQuestion = (value: boolean) => setChatState({ isCodingQuestion: value });
-  const setIsNoteQuestion = (value: boolean) => setChatState({ isNoteQuestion: value });
   const setSelectedModel = (model: Model) => setChatState({ selectedModel: model });
   const setCurrentChatSession = (session: ChatSession | null) => setChatState({ 
     currentSessionId: session?.id || null,
@@ -171,7 +167,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
     try {
       const { data, error } = await supabase
         .from("chat_messages")
-        .select("*")
+        .select("id, chat_session_id, notebook_id, user_id, content, is_user, created_at, workflow")
         .eq("chat_session_id", sessionId)
         .order("created_at", { ascending: true });
 
@@ -188,7 +184,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
   };
 
   // Save a message to the database
-  const saveMessage = async (content: string, isUser: boolean, session?: ChatSession | null) => {
+  const saveMessage = async (content: string, isUser: boolean, session?: ChatSession | null, workflow?: any[]) => {
     // Use provided session or fallback to currentChatSession
     const chatSession = session || currentChatSession;
     
@@ -210,6 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           user_id: user.id,
           content,
           is_user: isUser,
+          workflow: workflow || null, // Store agent workflow events if available
         },
       ]);
 
@@ -390,6 +387,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
       }
       // Track final content in a local variable
       let finalContent = "";
+      // Track agent events in a local variable
+      let agentEvents: any[] = [];
 
       // Stream the response
       await streamChatWithGemini(
@@ -398,14 +397,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           console.log("Stream update received:", content);
           finalContent = content; // Update the local variable
           setStreamingContent(content);
+          
+          // Extract any agent events from the content
+          const agentEventsMatch = content.match(/<!--agent_events:(.*?)-->/s);
+          if (agentEventsMatch && agentEventsMatch[1]) {
+            try {
+              agentEvents = JSON.parse(agentEventsMatch[1]);
+              console.log("Extracted agent events:", agentEvents);
+            } catch (err) {
+              console.error("Error parsing agent events:", err);
+            }
+          }
         },
         user?.id || null,
-        isCodingQuestion,
-        isNoteQuestion,
+        undefined, // isCodingQuestion
+        undefined, // isNoteQuestion
         undefined, // noteToggledFiles
         noteContent || undefined,
         selectedModel, // Pass the selected model
         spaceId, // Pass the space ID
+        noteId, // Pass the note ID as active file ID if a note is open
       );
 
       console.log("Stream completed, final content:", finalContent);
@@ -413,6 +424,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
       // Save the response to the database
       if (finalContent.trim()) {
         console.log("Saving AI response to database");
+        
+        // Clean the final content by removing agent events tags
+        const cleanContent = finalContent.replace(/<!--agent_events:(.*?)-->/s, '');
         
         // Create a session object from the user message if needed
         const messageSession = {
@@ -423,9 +437,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           created_at: ""  // Not needed for saving
         };
         
-        await saveMessage(finalContent, false, messageSession);
+        // Save the clean content and the workflow events to the database
+        await saveMessage(cleanContent, false, messageSession, agentEvents);
 
-        // Add AI response to messages array
+        // Add AI response to messages array, but keep the tags for immediate display
         const aiResponse: ChatMessage = {
           id: crypto.randomUUID(),
           chat_session_id: userMessage.chat_session_id,
@@ -434,6 +449,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           content: finalContent,
           is_user: false,
           created_at: new Date().toISOString(),
+          workflow: agentEvents // Add workflow data to the message object
         };
 
         console.log("Adding AI response to messages array:", aiResponse);
@@ -561,10 +577,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           isStreaming={isStreaming}
           textareaRef={textareaRef}
           autoResizeTextarea={autoResizeTextarea}
-          isCodingQuestion={!!isCodingQuestion}
-          setIsCodingQuestion={setIsCodingQuestion}
-          isNoteQuestion={!!isNoteQuestion}
-          setIsNoteQuestion={setIsNoteQuestion}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
           chatSessions={chatSessions}
@@ -590,10 +602,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sidebarOpen, simplified =
           isStreamingState={isStreaming}
           textareaRef={textareaRef}
           autoResizeTextarea={autoResizeTextarea}
-          isCodingQuestion={!!isCodingQuestion}
-          setIsCodingQuestion={setIsCodingQuestion}
-          isNoteQuestion={!!isNoteQuestion}
-          setIsNoteQuestion={setIsNoteQuestion}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
           onBackClick={handleBackClick}

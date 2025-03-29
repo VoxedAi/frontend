@@ -17,6 +17,7 @@ import { getToggledFiles } from "./userService";
  * @param noteContent Optional note content to include when a note is open
  * @param modelName Optional model name to use (defaults to NORMAL model)
  * @param spaceId Optional space ID for the current workspace
+ * @param activeFileId Optional ID of the currently active file (e.g., open note)
  */
 export async function streamChatWithGemini(
   history: Message[],
@@ -28,6 +29,7 @@ export async function streamChatWithGemini(
   noteContent?: string,
   modelName: Model = DEFAULT_MODEL,
   spaceId?: string,
+  activeFileId?: string | null,
 ): Promise<void> {
   try {
     console.log("Starting chat with history length:", history.length);
@@ -58,51 +60,17 @@ export async function streamChatWithGemini(
     // Extract the exact user query text
     const exactUserQuery = lastMessage.content;
     console.log("Exact user query:", exactUserQuery);
-    let toggledFilesIds: string[] | null = null;
-    let queryRequest: any = null;
-
-    // If isNoteQuestion is true and noteToggledFiles is provided, use those files
-    // Otherwise, get the toggled files from the user service
-    if (isNoteQuestion && noteToggledFiles && noteToggledFiles.length > 0) {
-      toggledFilesIds = noteToggledFiles;
-      console.log("Using note toggled files:", toggledFilesIds);
-    } else if (userId) {
-      toggledFilesIds = await getToggledFiles(userId);
-      console.log("Toggled files IDs:", toggledFilesIds);
-    }
 
     // Prepare the base query request
-    const baseQueryRequest = {
+    let queryRequest = {
       query: exactUserQuery,
       top_k: 5,
       model_name: modelName, // Use the provided model name
-      use_rag: true,
       stream: true,
       user_id: userId,
-      is_coding_question: isCodingQuestion,
       space_id: spaceId,
-      view: "", // Leave blank as requested
+      active_file_id: activeFileId || null,
     };
-
-    // Add noteContent to the request if provided
-    if (noteContent) {
-      console.log("Including note content in query:", noteContent.substring(0, 100) + (noteContent.length > 100 ? "..." : ""));
-      // Create the queryRequest with noteContent
-      const notePrompt = "\n\nThe user is currently writing a note alongside this query. Note that the query may be irrelevant to the note content in such case ignore the note content; otherwise use it to help answer the query. Note content: " + noteContent;
-      baseQueryRequest.query += notePrompt;
-      
-      queryRequest = baseQueryRequest;
-    } else {
-      queryRequest = baseQueryRequest;
-    }
-
-    // Add filter for toggled files if available
-    if (toggledFilesIds) {
-      queryRequest = {
-        ...queryRequest,
-        filter: { "file_id": { "$in": toggledFilesIds } },
-      };
-    }
 
     console.log("Sending query request:", queryRequest);
 
@@ -184,8 +152,25 @@ export async function streamChatWithGemini(
 function parseStreamingResponse(streamData: string): string {
   let extractedText = "";
   let reasoningText = "";
+  let agentEvents: any[] = [];
 
   try {
+    // Check for event markers in the raw stream data
+    const eventRegex = /\[EVENT:([^\]]+)\](.*?)\[\/EVENT\]/g;
+    let eventMatch;
+    while ((eventMatch = eventRegex.exec(streamData)) !== null) {
+      const eventType = eventMatch[1];
+      const eventData = eventMatch[2];
+      console.log(`Agent Event Detected - Type: ${eventType}`, eventData);
+      
+      // Store all agent events for debugging
+      agentEvents.push({
+        type: "agent_event",
+        event_type: eventType,
+        data: eventData
+      });
+    }
+
     // Split the stream data into lines
     const lines = streamData.split("\n");
 
@@ -200,6 +185,9 @@ function parseStreamingResponse(streamData: string): string {
           const jsonStr = line.substring(5).trim();
           const data = JSON.parse(jsonStr);
 
+          // Log all parsed data for debugging
+          console.log("Parsed SSE data:", data);
+
           // If it's a regular token, add it to the extracted text
           if (data.type === "token" && data.content) {
             extractedText += data.content;
@@ -210,6 +198,33 @@ function parseStreamingResponse(streamData: string): string {
           else if (data.type === "reasoning" && data.content) {
             reasoningText += data.content;
           }
+          
+          // Handle agent events
+          else if (data.type === "agent_event") {
+            console.log("Agent Event from SSE:", data);
+            // Properly store the event with all its fields
+            const eventData = {
+              type: "agent_event",
+              event_type: data.event_type || "unknown",
+              // Include all other fields that might be present
+              ...(data.decision && { decision: data.decision }),
+              ...(data.file_id && { file_id: data.file_id }),
+              ...(data.tool && { tool: data.tool }),
+              ...(data.message && { message: data.message }),
+              ...(data.data && { data: data.data })
+            };
+            // Store the agent event for returning to the UI
+            agentEvents.push(eventData);
+          }
+          // Handle error events
+          else if (data.type === "error") {
+            console.error("Error event from backend:", data);
+            agentEvents.push({
+              type: "agent_event",
+              event_type: "error",
+              message: data.message || "Unknown error"
+            });
+          }
         } catch (error) {
           // If JSON parsing fails, log the error and line for debugging
           console.warn("Failed to parse JSON in stream data line:", line, error);
@@ -219,6 +234,7 @@ function parseStreamingResponse(streamData: string): string {
 
     // Log what we've extracted for debugging
     console.log("Extracted text from SSE:", extractedText);
+    console.log("Agent events collected:", agentEvents);
 
     // Trim the text first
     extractedText = extractedText.trim();
@@ -244,7 +260,13 @@ function parseStreamingResponse(streamData: string): string {
     // If we have reasoning text, add it as a data attribute to the main text
     if (reasoningText.trim()) {
       // Store reasoning text as a data attribute that can be accessed by the ChatView component
-      return extractedText + "<!--reasoning:" + reasoningText.trim() + "-->";
+      extractedText = extractedText + "<!--reasoning:" + reasoningText.trim() + "-->";
+    }
+
+    // If we have agent events, add them as a data attribute
+    if (agentEvents.length > 0) {
+      // Make sure to properly serialize the agent events
+      return extractedText + "<!--agent_events:" + JSON.stringify(agentEvents) + "-->";
     }
 
     return extractedText;

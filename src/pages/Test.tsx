@@ -1,520 +1,424 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import {
+  Bot,
+  Brain,
+  Search,
+  FileText,
+  Edit,
+  Code,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Clock,
+  RotateCw,
+  MessageSquare,
+  ArrowRight,
+} from "lucide-react";
+import { z } from "zod"; // For runtime validation
 
-interface Note {
-  id: string;
-  title: string;
-  preview: string;
+// TypeScript interfaces & zod schemas
+const StatusEnum = z.enum(["completed", "in-progress", "waiting"]);
+type Status = z.infer<typeof StatusEnum>;
+
+const StepDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: StatusEnum,
+});
+type StepDetail = z.infer<typeof StepDetailSchema>;
+
+const WorkflowStepSchema = z.object({
+  id: z.string(),
+  type: z.enum(["message", "tool"]),
+  status: StatusEnum,
+  content: z.string().optional(),
+  name: z.string().optional(),
+  icon: z.any().optional(), // React component type
+  isOpen: z.boolean().optional(),
+  details: z.array(StepDetailSchema).optional(),
+});
+type WorkflowStep = z.infer<typeof WorkflowStepSchema>;
+
+interface AgentWorkflowIndicatorProps {
+  className?: string;
+  darkMode?: boolean;
 }
 
-interface FileItem {
-  id: string;
-  name: string;
-  preview: string;
-}
+const AgentWorkflowIndicator: React.FC<AgentWorkflowIndicatorProps> = ({
+  className = "",
+  darkMode = false,
+}) => {
+  // Auto-detect system color scheme if not explicitly set
+  const [isDarkMode, setIsDarkMode] = useState(darkMode);
 
-// Sample data
-const notesSample: Note[] = [
-  { id: '1', title: 'Meeting notes', preview: 'Summary of the weekly meeting...' },
-  { id: '2', title: 'Project plan', preview: 'High-level plan for the project...' },
-  { id: '3', title: 'Ideas', preview: 'Brainstorming and random thoughts...' },
-];
-
-const filesSample: FileItem[] = [
-  { id: '1', name: 'index.ts', preview: 'TypeScript entry point...' },
-  { id: '2', name: 'App.tsx', preview: 'React component code...' },
-  { id: '3', name: 'styles.css', preview: 'CSS stylesheet...' },
-];
-
-// Add types for logging and tracking mentions
-interface MentionLog {
-  type: string;
-  fullCommand: string;
-  endpoint: string;
-}
-
-const mainCommands = [
-  { id: 'notes', type: 'list', description: 'Access your notes' },
-  { id: 'code', type: 'endpoint', description: 'Execute code' },
-  { id: 'files', type: 'list', description: 'Browse files' },
-  { id: 'web', type: 'endpoint', description: 'Search the web' }
-];
-
-const Test: React.FC = () => {
-  const [inputValue, setInputValue] = useState('');
-  const [showMainMenu, setShowMainMenu] = useState(false);
-  const [showSubMenu, setShowSubMenu] = useState(false);
-
-  const [filteredMainCommands, setFilteredMainCommands] = useState(mainCommands);
-  const [activeCommand, setActiveCommand] = useState<string | null>(null);
-
-  const [filteredNotes, setFilteredNotes] = useState(notesSample);
-  const [filteredFiles, setFilteredFiles] = useState(filesSample);
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedSubIndex, setSelectedSubIndex] = useState(0);
-  
-  // Add state for logging mentions
-  const [mentionLogs, setMentionLogs] = useState<MentionLog[]>([]);
-  
-  // Track cursor position to restore it after command selection
-  const [selectionStart, setSelectionStart] = useState<number | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Whenever input changes, check for '@' and update menus accordingly
+  // Listen for system color scheme changes
   useEffect(() => {
-    const atIndex = inputValue.lastIndexOf('@');
-    if (atIndex >= 0) {
-      // There's an '@' somewhere in the text
-      const afterAt = inputValue.slice(atIndex + 1).toLowerCase();
+    if (darkMode) {
+      setIsDarkMode(darkMode);
+      return;
+    }
 
-      // If we're NOT in a submenu yet, filter main commands
-      if (!showSubMenu) {
-        const matches = mainCommands.filter(cmd =>
-          cmd.id.startsWith(afterAt)
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+
+    setIsDarkMode(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [darkMode]);
+
+  // Simulated agent workflow steps
+  const [steps, setSteps] = useState<WorkflowStep[]>([
+    {
+      id: "routing",
+      type: "message",
+      content: "Routing to necessary tools...",
+      status: "completed",
+    },
+    {
+      id: "search",
+      type: "tool",
+      name: "Searching the web...",
+      icon: Search,
+      status: "completed",
+      isOpen: false,
+      details: [
+        { id: "search1", name: "Query refinement", status: "completed" },
+        { id: "search2", name: "Web search execution", status: "completed" },
+        { id: "search3", name: "Result parsing", status: "completed" },
+      ],
+    },
+    {
+      id: "readFile",
+      type: "tool",
+      name: "Reading the file...",
+      icon: FileText,
+      status: "completed",
+      isOpen: false,
+      details: [
+        { id: "read1", name: "File access", status: "completed" },
+        { id: "read2", name: "Content extraction", status: "completed" },
+        { id: "read3", name: "Data validation", status: "completed" },
+      ],
+    },
+    {
+      id: "editFile",
+      type: "tool",
+      name: "Editing the file...",
+      icon: Edit,
+      status: "completed",
+      isOpen: false,
+      details: [
+        { id: "edit1", name: "File access", status: "completed" },
+        { id: "edit2", name: "Changes applied", status: "completed" },
+        { id: "edit3", name: "Verification", status: "completed" },
+      ],
+    },
+    {
+      id: "codeRunning",
+      type: "tool",
+      name: "Code running...",
+      icon: Code,
+      status: "in-progress",
+      isOpen: false,
+      details: [
+        { id: "code1", name: "Environment setup", status: "completed" },
+        { id: "code2", name: "Script execution", status: "in-progress" },
+        { id: "code3", name: "Output capture", status: "waiting" },
+        { id: "code4", name: "Result analysis", status: "waiting" },
+      ],
+    },
+    {
+      id: "response",
+      type: "message",
+      content: "Final response...",
+      status: "waiting",
+    },
+  ]);
+
+  // Validate steps with Zod (runtime validation)
+  useEffect(() => {
+    try {
+      z.array(WorkflowStepSchema).parse(steps);
+    } catch (error) {
+      console.error("Invalid workflow steps data:", error);
+    }
+  }, [steps]);
+
+  const toggleDropdown = (id: string): void => {
+    setSteps(
+      steps.map((step) =>
+        step.id === id ? { ...step, isOpen: !step.isOpen } : step
+      )
+    );
+  };
+
+  // Dynamic styling based on theme
+  const getStatusColor = (status: Status): string => {
+    if (isDarkMode) {
+      switch (status) {
+        case "completed":
+          return "text-emerald-400";
+        case "in-progress":
+          return "text-blue-400";
+        case "waiting":
+          return "text-gray-500";
+        default:
+          return "text-gray-400";
+      }
+    } else {
+      switch (status) {
+        case "completed":
+          return "text-emerald-600";
+        case "in-progress":
+          return "text-blue-600";
+        case "waiting":
+          return "text-gray-400";
+        default:
+          return "text-gray-600";
+      }
+    }
+  };
+
+  const getStatusBgColor = (status: Status): string => {
+    if (isDarkMode) {
+      switch (status) {
+        case "completed":
+          return "bg-emerald-500";
+        case "in-progress":
+          return "bg-blue-500";
+        case "waiting":
+          return "bg-gray-600";
+        default:
+          return "bg-gray-700";
+      }
+    } else {
+      switch (status) {
+        case "completed":
+          return "bg-emerald-500";
+        case "in-progress":
+          return "bg-blue-500";
+        case "waiting":
+          return "bg-gray-400";
+        default:
+          return "bg-gray-600";
+      }
+    }
+  };
+
+  const getStatusIcon = (status: Status, animated = true): React.ReactNode => {
+    switch (status) {
+      case "completed":
+        return <Check className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      case "in-progress":
+        return animated ? (
+          <RotateCw
+            className={`h-4 w-4 ${getStatusColor(status)} animate-spin`}
+          />
+        ) : (
+          <Clock className={`h-4 w-4 ${getStatusColor(status)}`} />
         );
-        setFilteredMainCommands(matches);
-        setShowMainMenu(true);
-      } else {
-        // If we ARE in a submenu, filter that submenu's items
-        if (activeCommand === 'notes') {
-          const query = afterAt.replace('notes', '').trim();
-          const newFilteredNotes = notesSample.filter(n =>
-            n.title.toLowerCase().includes(query)
-          );
-          setFilteredNotes(newFilteredNotes);
-        } else if (activeCommand === 'files') {
-          const query = afterAt.replace('files', '').trim();
-          const newFilteredFiles = filesSample.filter(f =>
-            f.name.toLowerCase().includes(query)
-          );
-          setFilteredFiles(newFilteredFiles);
-        }
-      }
-    } else {
-      // No '@' in text => no menus
-      setShowMainMenu(false);
-      setShowSubMenu(false);
-      setActiveCommand(null);
-    }
-  }, [inputValue, showSubMenu, activeCommand]);
-
-  // Restore cursor position after input value changes
-  useEffect(() => {
-    if (inputRef.current && selectionStart !== null && selectionEnd !== null) {
-      inputRef.current.focus();
-      inputRef.current.setSelectionRange(selectionStart, selectionEnd);
-      // Reset after applying
-      setSelectionStart(null);
-      setSelectionEnd(null);
-    }
-  }, [selectionStart, selectionEnd]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-    // Reset selection indices whenever the text changes
-    setSelectedIndex(0);
-    setSelectedSubIndex(0);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (showMainMenu && !showSubMenu) {
-      // Navigating the MAIN menu
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % filteredMainCommands.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + filteredMainCommands.length) % filteredMainCommands.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        selectMainCommand(filteredMainCommands[selectedIndex].id);
-      } else if (e.key === 'Escape') {
-        setShowMainMenu(false);
-      }
-    } else if (showSubMenu && activeCommand === 'notes') {
-      // Navigating the NOTES submenu
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedSubIndex(prev => (prev + 1) % filteredNotes.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedSubIndex(prev => (prev - 1 + filteredNotes.length) % filteredNotes.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        selectNote(filteredNotes[selectedSubIndex]);
-      } else if (e.key === 'Escape') {
-        // Back to main menu
-        setShowSubMenu(false);
-        setShowMainMenu(true);
-      }
-    } else if (showSubMenu && activeCommand === 'files') {
-      // Navigating the FILES submenu
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedSubIndex(prev => (prev + 1) % filteredFiles.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedSubIndex(prev => (prev - 1 + filteredFiles.length) % filteredFiles.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        selectFile(filteredFiles[selectedSubIndex]);
-      } else if (e.key === 'Escape') {
-        // Back to main menu
-        setShowSubMenu(false);
-        setShowMainMenu(true);
-      }
+      case "waiting":
+        return <Clock className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      default:
+        return null;
     }
   };
 
-  // Save cursor position before modifying the input
-  const saveCursorPosition = (atIndex: number, newTextLength: number) => {
-    const cursorPos = atIndex + newTextLength;
-    setSelectionStart(cursorPos);
-    setSelectionEnd(cursorPos);
-  };
+  // Theme-adaptive classes
+  const baseClasses = isDarkMode
+    ? "bg-gray-900 text-gray-100"
+    : "bg-white text-gray-800";
 
-  // User clicks or presses Enter on a main command
-  const selectMainCommand = (cmd: string) => {
-    // Replace the '@...' text in input with the chosen command
-    const atIndex = inputValue.lastIndexOf('@');
-    
-    setActiveCommand(cmd);
-    setShowMainMenu(false);
+  const containerClasses = isDarkMode
+    ? "bg-gray-800 shadow-md"
+    : "bg-gray-50 shadow-sm";
 
-    // If command is notes/files => open submenu
-    // If command is code/web => just treat it as a toggle and log it
-    if (cmd === 'notes' || cmd === 'files') {
-      setShowSubMenu(true);
-      // For list type, just keep the @ marker for further selection
-      const newValue = inputValue.slice(0, atIndex) + `@${cmd} `;
-      setInputValue(newValue);
-      saveCursorPosition(atIndex, cmd.length + 2); // +2 for @ and space
-    } else {
-      setShowSubMenu(false);
-      // For endpoint type, replace the @cmd with just the endpoint
-      const newValue = inputValue.slice(0, atIndex) + `@${cmd}`;
-      setInputValue(newValue);
-      saveCursorPosition(atIndex, cmd.length + 1); // +1 for @
-      
-      // Log the endpoint command (code/web)
-      const fullCommand = `@${cmd}`;
-      const endpoint = cmd;
-      logMention(cmd, fullCommand, endpoint);
-    }
-  };
+  const messageClasses = isDarkMode
+    ? "bg-gray-800 border border-gray-700"
+    : "bg-gray-100";
 
-  // User clicks or presses Enter on a note item
-  const selectNote = (note: Note) => {
-    const atIndex = inputValue.lastIndexOf('@notes');
-    // Everything before the '@notes' portion
-    const prefix = inputValue.slice(0, atIndex);
-    // Replace @notes with just the note title
-    const newValue = prefix + `@${note.title}`;
-    setInputValue(newValue);
-    saveCursorPosition(atIndex, note.title.length + 1); // +1 for @
-    
-    // Log the note selection
-    const fullCommand = `@notes ${note.title}`;
-    const endpoint = note.title;
-    logMention('notes', fullCommand, endpoint);
-    
-    closeSubmenu();
-  };
+  const toolCardClasses = isDarkMode
+    ? "bg-gray-800 border border-gray-700 hover:bg-gray-750"
+    : "bg-white hover:bg-gray-50";
 
-  // User clicks or presses Enter on a file item
-  const selectFile = (file: FileItem) => {
-    const atIndex = inputValue.lastIndexOf('@files');
-    // Everything before the '@files' portion
-    const prefix = inputValue.slice(0, atIndex);
-    // Replace @files with just the filename
-    const newValue = prefix + `@${file.name}`;
-    setInputValue(newValue);
-    saveCursorPosition(atIndex, file.name.length + 1); // +1 for @
-    
-    // Log the file selection
-    const fullCommand = `@files ${file.name}`;
-    const endpoint = file.name;
-    logMention('files', fullCommand, endpoint);
-    
-    closeSubmenu();
-  };
+  const toolDetailClasses = isDarkMode
+    ? "bg-gray-750 border-gray-700"
+    : "bg-gray-50 border-gray-100";
 
-  // Function to log mentions
-  const logMention = (type: string, fullCommand: string, endpoint: string) => {
-    const newLog: MentionLog = {
-      type,
-      fullCommand,
-      endpoint
-    };
-    setMentionLogs(prev => [...prev, newLog]);
-    console.log(`Mention logged: ${type}.${endpoint} (Full Command: ${fullCommand})`);
-  };
-
-  // Close out the submenu entirely
-  const closeSubmenu = () => {
-    setShowSubMenu(false);
-    setActiveCommand(null);
-  };
-
-  // Handlers for clicks
-  const handleMainCommandClick = (cmd: string) => {
-    selectMainCommand(cmd);
-  };
-
-  const handleNoteClick = (note: Note) => {
-    selectNote(note);
-  };
-
-  const handleFileClick = (file: FileItem) => {
-    selectFile(file);
-  };
-
-  // Get a CSS class for a command in the text
-  const getCommandClass = (text: string) => {
-    // Commands are always prefixed with @
-    const commandRegex = /@(\w+)/g;
-    let match;
-    let lastMatch = null;
-    
-    while ((match = commandRegex.exec(text)) !== null) {
-      lastMatch = match;
-    }
-    
-    // If we have a command match, return special styling
-    if (lastMatch) {
-      return {
-        backgroundColor: '#f0f0ff',
-        fontWeight: 'bold',
-        borderRadius: '2px'
-      };
-    }
-    
-    return {};
-  };
+  const detailItemClasses = isDarkMode
+    ? "bg-gray-800 border border-gray-700"
+    : "bg-white";
 
   return (
-    <div style={{ position: 'relative', width: 400, margin: '2rem auto' }}>
-      <div
-        style={{ 
-          width: '100%', 
-          position: 'relative'
-        }}
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          style={{ 
-            width: '100%',
-            padding: '8px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            minHeight: '38px',
-            outline: 'none',
-            ...(inputValue.includes('@') ? getCommandClass(inputValue) : {})
-          }}
-        />
+    <div
+      className={`w-full max-w-md mx-auto rounded-xl p-4 transition-colors duration-200 ${className}`}
+    >
+      <div className="flex items-center mb-4">
+        <div
+          className={`p-2 rounded-lg`}
+        >
+          <Bot className="h-5 w-5 text-indigo-400" />
+        </div>
+        <h3
+          className={`font-medium ${
+            isDarkMode ? "text-gray-100" : "text-gray-800"
+          } ml-2 text-sm`}
+        >
+          Agent Workflow
+        </h3>
       </div>
 
-      {/* MAIN MENU */}
-      {showMainMenu && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 42,
-            left: 0,
-            background: '#fff',
-            border: '1px solid #ccc',
-            borderRadius: 4,
-            width: 250,
-            zIndex: 100,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}
-        >
-          {filteredMainCommands.map((cmd, index) => (
-            <div
-              key={cmd.id}
-              onClick={() => handleMainCommandClick(cmd.id)}
-              style={{
-                padding: '10px',
-                background: index === selectedIndex ? '#f5f5f5' : '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid #eee'
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 'bold' }}>{cmd.id}</div>
-                <div style={{ fontSize: '0.8em', color: '#666' }}>
-                  {cmd.description}
+      {/* Chat-style workflow */}
+      <div className="space-y-2">
+        {steps.map((step) => (
+          <div key={step.id} className="animate-fadeIn">
+            {step.type === "message" ? (
+              // Message step - theme adaptive
+              <div
+                className={`py-2 px-3 rounded-lg ${
+                  step.status === "completed"
+                    ? messageClasses
+                    : `${messageClasses} opacity-60`
+                } text-sm transition-colors duration-200`}
+              >
+                <div className="flex items-center">
+                  <MessageSquare className="h-3.5 w-3.5 mr-2 text-indigo-400" />
+                  <span>{step.content}</span>
                 </div>
               </div>
-              <span style={{ 
-                fontSize: '0.7em', 
-                padding: '2px 6px', 
-                borderRadius: '12px', 
-                background: cmd.type === 'list' ? '#e3f2fd' : '#e8f5e9',
-                color: cmd.type === 'list' ? '#1565c0' : '#2e7d32'
-              }}>
-                {cmd.type}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+            ) : (
+              // Tool step with dropdown - theme adaptive
+              <div
+                className={`rounded-lg overflow-hidden transition-all duration-200`}
+              >
+                <div
+                  className="flex items-center justify-between py-2.5 px-3 cursor-pointer relative"
+                  onClick={() => toggleDropdown(step.id)}
+                >
+                  <div className="flex items-center">
+                    <div
+                     
+                    ></div>
+                    {step.icon && (
+                      <step.icon
+                        className={`h-4 w-4 mr-2 ${getStatusColor(
+                          step.status
+                        )}`}
+                      />
+                    )}
+                    <span
+                      className={`text-xs font-medium ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={
+                          isDarkMode ? "text-gray-100" : "text-gray-900"
+                        }
+                      >
+                        {step.name}
+                      </span>
+                    </span>
+                  </div>
 
-      {/* SUBMENU for NOTES */}
-      {showSubMenu && activeCommand === 'notes' && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 42,
-            left: 0,
-            background: '#fff',
-            border: '1px solid #ccc',
-            borderRadius: 4,
-            width: 300,
-            zIndex: 100,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}
-        >
-          {/* Back button */}
-          <div
-            style={{
-              padding: '8px',
-              cursor: 'pointer',
-              background: '#f0f0f0',
-              borderBottom: '1px solid #ccc',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            onClick={() => {
-              setShowSubMenu(false);
-              setShowMainMenu(true);
-            }}
-          >
-            <span style={{ marginRight: '5px' }}>&larr;</span> 
-            <span>Back to commands</span>
-            <span style={{ 
-              marginLeft: 'auto', 
-              fontSize: '0.7em', 
-              padding: '2px 6px', 
-              borderRadius: '12px', 
-              background: '#e3f2fd',
-              color: '#1565c0'
-            }}>
-              note items
-            </span>
+                  <div className="flex items-center space-x-2">
+                    {step.status === "in-progress" && (
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          isDarkMode
+                            ? "bg-blue-900/50 text-blue-300"
+                            : "bg-blue-50 text-blue-700"
+                        }`}
+                      >
+                        Active
+                      </span>
+                    )}
+                    {getStatusIcon(step.status)}
+                    {step.isOpen ? (
+                      <ChevronUp className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Dropdown details - theme adaptive */}
+                {step.isOpen && step.details && (
+                  <div className="px-3 pb-2 pt-0">
+                    <div
+                      className={`pt-2 pb-1 border-t ${
+                        isDarkMode ? "border-gray-700" : "border-gray-100"
+                      }`}
+                    >
+                      <h4
+                        className={`text-xs font-medium ${
+                          isDarkMode ? "text-gray-400" : "text-gray-500"
+                        } mb-2 flex items-center`}
+                      >
+                        <Brain className="h-3 w-3 mr-1 text-indigo-400" />
+                        Process Details
+                      </h4>
+                      <div className="space-y-1.5">
+                        {step.details.map((detail) => (
+                          <div
+                            key={detail.id}
+                            className={`flex items-center justify-between py-1.5 px-2 rounded-md ${detailItemClasses}`}
+                          >
+                            <span
+                              className={`text-xs ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}
+                            >
+                              {detail.name}
+                            </span>
+                            <div className="flex items-center">
+                              {getStatusIcon(
+                                detail.status,
+                                detail.status === "in-progress"
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          {filteredNotes.map((note, index) => (
-            <div
-              key={note.id}
-              onClick={() => handleNoteClick(note)}
-              style={{
-                padding: '10px',
-                background: index === selectedSubIndex ? '#f5f5f5' : '#fff',
-                cursor: 'pointer',
-                borderBottom: '1px solid #eee',
-              }}
-            >
-              <div style={{ fontWeight: 'bold' }}>{note.title}</div>
-              <div style={{ fontSize: '0.8em', color: '#666' }}>{note.preview}</div>
-            </div>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* SUBMENU for FILES */}
-      {showSubMenu && activeCommand === 'files' && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 42,
-            left: 0,
-            background: '#fff',
-            border: '1px solid #ccc',
-            borderRadius: 4,
-            width: 300,
-            zIndex: 100,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}
-        >
-          {/* Back button */}
-          <div
-            style={{
-              padding: '8px',
-              cursor: 'pointer',
-              background: '#f0f0f0',
-              borderBottom: '1px solid #ccc',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            onClick={() => {
-              setShowSubMenu(false);
-              setShowMainMenu(true);
-            }}
-          >
-            <span style={{ marginRight: '5px' }}>&larr;</span> 
-            <span>Back to commands</span>
-            <span style={{ 
-              marginLeft: 'auto', 
-              fontSize: '0.7em', 
-              padding: '2px 6px', 
-              borderRadius: '12px', 
-              background: '#e3f2fd',
-              color: '#1565c0'
-            }}>
-              file items
-            </span>
-          </div>
-          {filteredFiles.map((file, index) => (
-            <div
-              key={file.id}
-              onClick={() => handleFileClick(file)}
-              style={{
-                padding: '10px',
-                background: index === selectedSubIndex ? '#f5f5f5' : '#fff',
-                cursor: 'pointer',
-                borderBottom: '1px solid #eee',
-              }}
-            >
-              <div style={{ fontWeight: 'bold' }}>{file.name}</div>
-              <div style={{ fontSize: '0.8em', color: '#666' }}>{file.preview}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Log Display */}
-      {mentionLogs.length > 0 && (
-        <div style={{ 
-          marginTop: '20px', 
-          border: '1px solid #ddd', 
-          borderRadius: '4px',
-          padding: '10px'
-        }}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Mention Logs:</h3>
-          {mentionLogs.map((log, index) => (
-            <div key={index} style={{ 
-              padding: '8px', 
-              borderBottom: index < mentionLogs.length - 1 ? '1px solid #eee' : 'none',
-              display: 'flex', 
-              justifyContent: 'space-between'
-            }}>
-              <span style={{ fontWeight: 'bold' }}>{log.type}.{log.endpoint}</span>
-              <span style={{ color: '#666' }}>{log.fullCommand}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* CSS for animations with cubic-bezier easing */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-3px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        .animate-spin {
+          animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 };
 
-export default Test;
+export default AgentWorkflowIndicator;

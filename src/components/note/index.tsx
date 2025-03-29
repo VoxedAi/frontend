@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import { getSpaceFiles, deleteFile } from '../../services/fileUpload';
 import toast from 'react-hot-toast';
 import { useSupabaseUser } from '../../contexts/UserContext';
+import { useLayoutState } from '../../hooks/useLayoutState';
 import NoteModal from '../NoteModal';
 import NoteList from './NoteList';
 import NoteEditor from './NoteEditor';
@@ -23,8 +24,8 @@ interface NotesInterfaceProps {
 
 const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect }) => {
   const { id: spaceId } = useParams<{ id: string }>();
+  const [layout, setLayout] = useLayoutState();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedNote, setSelectedNote] = useState<string | null>(noteId || null);
   const [notes, setNotes] = useState<ExtendedFile[]>([]);
   const [files, setFiles] = useState<ExtendedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,14 +39,23 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { supabaseUserId, getSupabaseClient } = useSupabaseUser();
 
-  // Update the selected note when the noteId prop changes
+  // Get selectedNoteId from layout state with fallback to prop
+  const selectedNote = layout.selectedNoteId || noteId || null;
+
+  // Update layout when noteId prop changes
   useEffect(() => {
-    // Handle both setting and clearing the selected note
-    setSelectedNote(noteId || null);
-    
-    // If a note is selected and notes are loaded, load its content
-    if (noteId && notes.length > 0) {
-      const noteFile = notes.find(note => note.id === noteId);
+    if (noteId !== layout.selectedNoteId) {
+      setLayout({ 
+        selectedNoteId: noteId,
+        selectedView: noteId ? 'notes' : layout.selectedView
+      });
+    }
+  }, [noteId, layout.selectedNoteId, layout.selectedView, setLayout]);
+
+  // If a note is selected and notes are loaded, load its content
+  useEffect(() => {
+    if (selectedNote && notes.length > 0) {
+      const noteFile = notes.find(note => note.id === selectedNote);
       if (noteFile) {
         loadNoteContent(noteFile).then(content => {
           if (content) {
@@ -53,22 +63,10 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
           }
         });
       } else {
-        console.log(`Note with ID ${noteId} not found in notes list, waiting for notes to load...`);
-      }
-    } else if (noteId) {
-      console.log(`Notes not loaded yet, will try again after notes load...`);
-    }
-  }, [noteId, notes]);
-
-  // Initial load of the selected note content when notes are loaded
-  useEffect(() => {
-    if (selectedNote && notes.length > 0 && !isLoading) {
-      const noteFile = notes.find(note => note.id === selectedNote);
-      if (noteFile) {
-        loadNoteContent(noteFile);
+        console.log(`Note with ID ${selectedNote} not found in notes list, waiting for notes to load...`);
       }
     }
-  }, [selectedNote, notes, isLoading]);
+  }, [selectedNote, notes]);
 
   // Extract title from metadata or filename
   const getNoteTitleFromMetadata = (note?: SpaceFile): string => {
@@ -221,7 +219,11 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
   };
 
   const handleNoteClick = async (noteId: string) => {
-    setSelectedNote(noteId);
+    // Update layout state with the selected note and view
+    setLayout({ 
+      selectedNoteId: noteId,
+      selectedView: 'notes'
+    });
     
     // Notify parent component about the note selection
     if (onNoteSelect) {
@@ -236,7 +238,8 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
   };
 
   const handleCloseEditor = () => {
-    setSelectedNote(null);
+    // Clear the selected note in layout
+    setLayout({ selectedNoteId: null });
     
     // Notify parent component about closing the note
     if (onNoteSelect) {
@@ -414,8 +417,11 @@ const NotesInterface: React.FC<NotesInterfaceProps> = ({ noteId, onNoteSelect })
         // Close the modal
         setIsModalOpen(false);
         
-        // Open the note editor
-        setSelectedNote(newNoteFile.id);
+        // Update layout state with the selected note and view
+        setLayout({ 
+          selectedNoteId: newNoteFile.id,
+          selectedView: 'notes'
+        });
         setSelectedNoteContent(contentString);
         
         console.log("Note created successfully");

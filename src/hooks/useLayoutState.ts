@@ -6,6 +6,7 @@ export type LayoutOptions = {
   notesExpanded?: boolean;
   selectedView?: 'chat' | 'notes' | 'files' | 'code';
   selectedNoteId?: string | null;
+  rightPanelCollapsed?: boolean;
   panelSizes?: {
     sidebar?: number;
     main?: number;
@@ -18,6 +19,7 @@ const defaultLayout: LayoutOptions = {
   notesExpanded: true,
   selectedView: 'chat',
   selectedNoteId: null,
+  rightPanelCollapsed: false,
   panelSizes: {
     sidebar: 250,
     main: 700,

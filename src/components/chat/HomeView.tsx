@@ -11,10 +11,6 @@ interface HomeViewProps {
   isStreaming: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   autoResizeTextarea: () => void;
-  isCodingQuestion: boolean;
-  setIsCodingQuestion: (value: boolean) => void;
-  isNoteQuestion: boolean;
-  setIsNoteQuestion: (value: boolean) => void;
   selectedModel?: Model;
   setSelectedModel?: (model: Model) => void;
   chatSessions: ChatSession[];
@@ -29,10 +25,6 @@ const HomeView: React.FC<HomeViewProps> = ({
   isStreaming,
   textareaRef,
   autoResizeTextarea,
-  isCodingQuestion,
-  setIsCodingQuestion,
-  isNoteQuestion,
-  setIsNoteQuestion,
   selectedModel = DEFAULT_MODEL,
   setSelectedModel,
   chatSessions,
@@ -61,7 +53,7 @@ const HomeView: React.FC<HomeViewProps> = ({
       {/* Initial view with centered chat bar */}
       <div className="flex flex-col items-center justify-center space-y-14 py-48">
         <div>
-          <h1 className="text-4xl font-bold">Start a new conversation</h1>
+          <h1 className="text-4xl font-bold text-center">Start a new conversation</h1>
         </div>
         {/* Chat bar in the middle of the page */}
         <div className="w-full max-w-3xl px-4">
@@ -95,7 +87,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                     <Tooltip
                       content="Allows the model to reason about it's response"
                       title={
-                        isCodingQuestion
+                        selectedModel === "deepseek/deepseek-r1:free"
                           ? "Model Selected: Reasoning"
                           : "Model Selected: Normal"
                       }

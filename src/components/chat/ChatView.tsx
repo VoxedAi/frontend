@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
-import { ClipboardIcon, CheckIcon, ChevronDown, BrainCircuit } from "lucide-react";
+import { ClipboardIcon, CheckIcon, ChevronDown, BrainCircuit, Search, File, Code, Terminal, AlertCircle, RefreshCw, CheckCircle, Clock, ChevronRight } from "lucide-react";
 import { ChatMessage, ReasoningData } from "../../types/chat";
 import { type Model, DEFAULT_MODEL, MODELS, MODEL_DISPLAY_NAMES } from "../../types/models";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -11,6 +11,17 @@ import Tooltip from "../common/Tooltip";
 import 'katex/dist/katex.min.css';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+
+// Define types for agent events
+interface AgentEvent {
+  type: string;
+  event_type: string;
+  decision?: string;
+  file_id?: string;
+  tool?: string;
+  message?: string;
+  data?: string;
+}
 
 // Define a custom interface for code component props
 interface CodeComponentProps {
@@ -70,10 +81,6 @@ interface ChatViewProps {
   isStreamingState: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   autoResizeTextarea: () => void;
-  isCodingQuestion: boolean;
-  setIsCodingQuestion: (value: boolean) => void;
-  isNoteQuestion: boolean;
-  setIsNoteQuestion: (value: boolean) => void;
   selectedModel?: Model;
   setSelectedModel?: (model: Model) => void;
   onBackClick: () => void;
@@ -122,6 +129,120 @@ const CodeBlock = ({
   );
 };
 
+// Icon mapping for different tool/event types
+const getToolIcon = (eventType: string) => {
+  switch (eventType) {
+    case 'file_edit_start':
+    case 'file_edit_complete':
+    case 'file_lookup_start':
+    case 'file_found':
+      return <File className="h-4 w-4" />;
+    case 'tool_execution_start':
+    case 'tool_complete':
+    case 'toolshed_start':
+      return <Terminal className="h-4 w-4" />;
+    case 'rag_complete':
+      return <Search className="h-4 w-4" />;
+    case 'decision':
+      return <BrainCircuit className="h-4 w-4" />;
+    case 'error':
+      return <AlertCircle className="h-4 w-4" />;
+    default:
+      return <Code className="h-4 w-4" />;
+  }
+};
+
+// Status badge for different event types
+const getStatusBadge = (eventType: string) => {
+  if (eventType.includes('complete') || eventType.includes('found')) {
+    return <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs px-2 py-0.5 rounded-full">Completed</span>;
+  } else if (eventType.includes('start')) {
+    return <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">In Progress</span>;
+  } else if (eventType === 'error') {
+    return <span className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs px-2 py-0.5 rounded-full">Error</span>;
+  } else {
+    return <span className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">Info</span>;
+  }
+};
+
+// Agent timeline component to display workflow
+const AgentTimeline = ({ events = [] }: { events: AgentEvent[] }) => {
+  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
+
+  const toggleEvent = (index: number) => {
+    setExpandedEvents(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  // Safety check to ensure events is an array
+  const safeEvents = Array.isArray(events) ? events : [];
+  
+  if (safeEvents.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 space-y-2">
+      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Agent Workflow</h4>
+      <div className="relative border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-4">
+        {safeEvents.map((event, index) => (
+          <div 
+            key={index} 
+            className="relative animate-fadeIn transition-all duration-200"
+          >
+            {/* Timeline dot */}
+            <div className="absolute -left-[21px] mt-1.5 h-4 w-4 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+            </div>
+            
+            {/* Event card */}
+            <div className={`
+              p-3 rounded-lg border border-gray-200 dark:border-gray-700
+              hover:border-gray-300 dark:hover:border-gray-600 
+              transition-all cursor-pointer
+              ${expandedEvents[index] ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'}
+            `}
+            onClick={() => toggleEvent(index)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-full bg-[color-mix(in_oklch,var(--color-primary,#6c47ff)_10%,transparent)] dark:bg-[color-mix(in_oklch,var(--color-primary,#6c47ff)_20%,transparent)]">
+                    {getToolIcon(event.event_type)}
+                  </div>
+                  <span className="font-medium text-sm">
+                    {event.event_type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(event.event_type)}
+                  <ChevronRight 
+                    className={`h-4 w-4 text-gray-400 transition-transform ${expandedEvents[index] ? 'rotate-90' : ''}`} 
+                  />
+                </div>
+              </div>
+              
+              {expandedEvents[index] && (
+                <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-2">
+                  {event.data && <p>{event.data}</p>}
+                  {event.message && <p>{event.message}</p>}
+                  {event.decision && <p>Decision: {event.decision}</p>}
+                  {event.file_id && <p>File ID: {event.file_id}</p>}
+                  {event.tool && <p>Tool: {event.tool}</p>}
+                  {!event.data && !event.message && !event.decision && !event.file_id && !event.tool && (
+                    <p>No additional details available</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const ChatView: React.FC<ChatViewProps> = ({
   messages,
   isStreaming,
@@ -134,10 +255,6 @@ const ChatView: React.FC<ChatViewProps> = ({
   isStreamingState,
   textareaRef,
   autoResizeTextarea,
-  isCodingQuestion,
-  setIsCodingQuestion,
-  isNoteQuestion,
-  setIsNoteQuestion,
   selectedModel = DEFAULT_MODEL,
   setSelectedModel,
   onBackClick,
@@ -154,9 +271,15 @@ const ChatView: React.FC<ChatViewProps> = ({
   
   // Map to store reasoning data for each message
   const [reasoningData, setReasoningData] = useState<Map<string, ReasoningData>>(new Map());
+  // Map to store agent events for each message
+  const [messageWorkflows, setMessageWorkflows] = useState<Map<string, AgentEvent[]>> (new Map());
   // For streaming message reasoning
   const [streamingReasoning, setStreamingReasoning] = useState<string>("");
   const [showStreamingReasoning, setShowStreamingReasoning] = useState<boolean>(false);
+  const [streamingAgentEvents, setStreamingAgentEvents] = useState<AgentEvent[]>([]);
+  const [showAgentEvents, setShowAgentEvents] = useState<boolean>(false);
+  // Currently selected message for displaying workflow
+  const [activeWorkflowMessageId, setActiveWorkflowMessageId] = useState<string | null>(null);
 
   // CSS for the pulse animation
   const pulseAnimation = `
@@ -168,6 +291,13 @@ const ChatView: React.FC<ChatViewProps> = ({
     .pulse-animation {
       animation: pulse 2s infinite ease-in-out;
       animation-duration: 50s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out forwards;
     }
   `;
 
@@ -270,59 +400,99 @@ const ChatView: React.FC<ChatViewProps> = ({
     return { text: content, reasoning: null };
   };
   
-  // Process streaming content and check for reasoning tokens
+  // Extract agent events from message text
+  const extractAgentEvents = (content: string): { text: string, events: AgentEvent[] | null } => {
+    const eventsRegex = /<!--agent_events:(.*?)-->/s;
+    const match = content.match(eventsRegex);
+    
+    if (match && match[1]) {
+      try {
+        // Found agent events
+        console.log("Found agent events");
+        
+        // Parse the JSON array
+        const events = JSON.parse(match[1]);
+        
+        // Create the cleaned text by removing the events comment
+        const cleanedText = content.replace(eventsRegex, '');
+        
+        // Return the content without events comment and the parsed events
+        return {
+          text: cleanedText,
+          events: Array.isArray(events) ? events : []
+        };
+      } catch (err) {
+        console.error("Error parsing agent events:", err);
+        return { text: content, events: null };
+      }
+    }
+    
+    return { text: content, events: null };
+  };
+  
+  // Process streaming content and check for agent events and reasoning
   useEffect(() => {
     if (isStreaming && streamingContent) {
-      const { text, reasoning } = extractReasoning(streamingContent);
+      // Extract both reasoning and agent events
+      const { text: textWithoutReasoning, reasoning } = extractReasoning(streamingContent);
+      const { text, events } = extractAgentEvents(textWithoutReasoning);
       
       // If reasoning exists in the streaming content
       if (reasoning) {
-        console.log("Found streaming reasoning - length:", reasoning.length);
         setStreamingReasoning(reasoning);
-        
-        // Note: We don't modify streamingContent here since it's controlled by the parent component
-        // The parent component will render 'text' directly from the SSE stream
       }
       
-      // Only calculate spacer height during streaming, don't auto-scroll
+      // If agent events exist
+      if (events && events.length > 0) {
+        setStreamingAgentEvents(events);
+        // Automatically show agent events when they're available
+        setShowAgentEvents(true);
+      }
+      
+      // Calculate spacer height and check scroll position
       calculateSpacerHeight();
       checkIfUserAtBottom();
     }
   }, [isStreaming, streamingContent]);
   
-  // Handle streaming completion - add streaming reasoning to the message reasoning data
+  // Handle streaming completion - add streaming reasoning and agent events to the messages
   useEffect(() => {
-    if (!isStreaming && streamingReasoning && messages.length > 0) {
-      // When streaming completes, add the reasoning data to the last message
+    if (!isStreaming && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (!lastMessage.is_user && streamingReasoning) {
-        console.log("Streaming completed - storing reasoning for message:", lastMessage.id.substring(0, 8));
-        
-        // Add the reasoning data to the map (overwrite if exists)
-        setReasoningData(prev => {
-          const newMap = new Map(prev);
-          // Set reasoning to be hidden by default
-          newMap.set(lastMessage.id, { 
-            content: streamingReasoning, 
-            visible: false 
+      if (!lastMessage.is_user) {
+        // When streaming completes, store reasoning for the message if available
+        if (streamingReasoning) {
+          console.log("Streaming completed - storing reasoning for message:", lastMessage.id.substring(0, 8));
+          
+          // Add the reasoning data to the map (overwrite if exists)
+          setReasoningData(prev => {
+            const newMap = new Map(prev);
+            // Set reasoning to be hidden by default
+            newMap.set(lastMessage.id, { 
+              content: streamingReasoning, 
+              visible: false 
+            });
+            return newMap;
           });
-          return newMap;
-        });
-        
-        // Make sure the message content doesn't contain reasoning tags
-        // (This shouldn't happen normally since it's added after streaming,
-        // but this is a safety check)
-        if (lastMessage.content.includes('<!--reasoning:')) {
-          const { text } = extractReasoning(lastMessage.content);
-          lastMessage.content = text;
-          console.log("Removed reasoning tags from last message after streaming");
+          
+          // Clear streaming reasoning
+          setStreamingReasoning("");
         }
         
-        // Clear streaming reasoning now that it's stored in the map
-        setStreamingReasoning("");
+        // Set the agent events for the message if available
+        if (streamingAgentEvents.length > 0) {
+          console.log("Streaming completed - storing agent events for message:", lastMessage.id.substring(0, 8));
+          setMessageWorkflows(prev => {
+            const newMap = new Map(prev);
+            newMap.set(lastMessage.id, streamingAgentEvents);
+            return newMap;
+          });
+          // Clear streaming agent events
+          setStreamingAgentEvents([]);
+        }
       }
     }
-  }, [isStreaming, messages, streamingReasoning]);
+  }, [isStreaming, messages, streamingReasoning, streamingAgentEvents]);
   
   // Scroll to bottom when a new message is added (user submits a message)
   useEffect(() => {
@@ -384,6 +554,58 @@ const ChatView: React.FC<ChatViewProps> = ({
     }
   }, [messages]);
   
+  // Update agent workflow data for messages when they're added or changed
+  useEffect(() => {
+    // Process messages to extract agent events
+    messages.forEach(message => {
+      if (!message.is_user) {
+        // First check if the message has workflow data directly from the database
+        if (message.workflow && Array.isArray(message.workflow) && message.workflow.length > 0) {
+          // Ensure the workflow data conforms to AgentEvent type
+          const typedWorkflow = message.workflow.map(event => {
+            // Ensure each event has at least the required fields for AgentEvent
+            return {
+              type: event.type || "agent_event",
+              event_type: event.event_type || "unknown",
+              ...(event.decision && { decision: event.decision }),
+              ...(event.file_id && { file_id: event.file_id }),
+              ...(event.tool && { tool: event.tool }),
+              ...(event.message && { message: event.message }),
+              ...(event.data && { data: event.data })
+            } as AgentEvent;
+          });
+          
+          setMessageWorkflows(prev => {
+            const newMap = new Map(prev);
+            newMap.set(message.id, typedWorkflow);
+            return newMap;
+          });
+          console.log(`Set workflow data from message object for ${message.id.substring(0, 8)}`);
+        } 
+        // Then check content for embedded agent events (for backward compatibility)
+        else {
+          // Check if this message contains agent events in content
+          const { text, events } = extractAgentEvents(message.content);
+          
+          if (events && events.length > 0) {
+            // Store agent events for this message
+            setMessageWorkflows(prev => {
+              const newMap = new Map(prev);
+              newMap.set(message.id, events);
+              return newMap;
+            });
+            
+            // Update the message content to remove the events comment
+            if (message.content !== text) {
+              message.content = text;
+              console.log(`Modified message ${message.id.substring(0, 8)} to remove agent events comment`);
+            }
+          }
+        }
+      }
+    });
+  }, [messages]);
+  
   // Toggle reasoning visibility
   const toggleReasoning = (messageId: string) => {
     setReasoningData(prev => {
@@ -401,6 +623,25 @@ const ChatView: React.FC<ChatViewProps> = ({
   // Toggle streaming reasoning visibility
   const toggleStreamingReasoning = () => {
     setShowStreamingReasoning(prev => !prev);
+  };
+  
+  // Toggle agent events visibility for a specific message
+  const toggleAgentEvents = (messageId?: string) => {
+    // If messageId is provided, toggle for that specific message
+    if (messageId) {
+      if (activeWorkflowMessageId === messageId) {
+        // Toggle off if already active
+        setActiveWorkflowMessageId(null);
+        setShowAgentEvents(false);
+      } else {
+        // Set new active message
+        setActiveWorkflowMessageId(messageId);
+        setShowAgentEvents(true);
+      }
+    } else {
+      // Toggle streaming events visibility
+      setShowAgentEvents(prev => !prev);
+    }
   };
   
   // Initialize the streaming reasoning visibility state to be hidden by default
@@ -423,6 +664,15 @@ const ChatView: React.FC<ChatViewProps> = ({
     setIsModelDropdownOpen(false);
   };
 
+  // Inside the ChatView component, add this helper function
+  const getWorkflowEvents = (messageId: string): AgentEvent[] => {
+    if (!messageId || !messageWorkflows.has(messageId)) {
+      return [];
+    }
+    const events = messageWorkflows.get(messageId);
+    return events || [];
+  };
+
   return (
     <div className={`flex flex-col h-full ${simplified ? 'relative pb-4' : ''}`}>
       {/* Style tag for custom animations */}
@@ -431,7 +681,7 @@ const ChatView: React.FC<ChatViewProps> = ({
       {/* Back navigation */}
       <button 
         onClick={onBackClick}
-        className="pl-12 pt-3 pb-0 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm flex items-center"
+        className="pl-4 pt-3 pb-0 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm flex items-center"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
             <path d="M15 18l-6-6 6-6" />
@@ -516,7 +766,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                       )}
                     </button>
                     
-                    {/* Only show reasoning toggle if there's reasoning data for this message */}
+                    {/* Reasoning toggle */}
                     {reasoningData.has(message.id) && (
                       <button
                         onClick={() => toggleReasoning(message.id)}
@@ -530,6 +780,21 @@ const ChatView: React.FC<ChatViewProps> = ({
                         {reasoningData.get(message.id)?.visible ? 'Hide reasoning' : 'Show reasoning'}
                       </button>
                     )}
+                    
+                    {/* Agent events toggle button - Show only if message has workflow data */}
+                    {messageWorkflows.has(message.id) && messageWorkflows.get(message.id)!.length > 0 && (
+                      <button
+                        onClick={() => toggleAgentEvents(message.id)}
+                        className={`text-sm flex items-center ml-4 ${
+                          activeWorkflowMessageId === message.id && showAgentEvents
+                            ? 'text-purple-500 dark:text-purple-400' 
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        <RefreshCw size={16} className="mr-1" />
+                        {activeWorkflowMessageId === message.id && showAgentEvents ? 'Hide workflow' : 'Show workflow'}
+                      </button>
+                    )}
                   </div>
                   
                   {/* Reasoning content display */}
@@ -541,6 +806,11 @@ const ChatView: React.FC<ChatViewProps> = ({
                       </div>
                     </div>
                   )}
+                  
+                  {/* Agent workflow timeline display */}
+                  {activeWorkflowMessageId === message.id && showAgentEvents && getWorkflowEvents(message.id).length > 0 &&
+                    <AgentTimeline events={getWorkflowEvents(message.id)} />
+                  }
                 </div>
               )}
             </div>
@@ -592,11 +862,11 @@ const ChatView: React.FC<ChatViewProps> = ({
                   {streamingContent}
                 </Markdown>
                 
-                {/* Streaming reasoning toggle (only if there is reasoning) */}
-                {streamingReasoning && (
-                  <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2">
+                  {/* Streaming reasoning toggle */}
+                  {streamingReasoning && (
                     <button
-                      onClick={toggleStreamingReasoning}
+                      onClick={() => toggleStreamingReasoning()}
                       className={`text-sm flex items-center ${
                         showStreamingReasoning 
                           ? 'text-blue-500 dark:text-blue-400' 
@@ -606,8 +876,23 @@ const ChatView: React.FC<ChatViewProps> = ({
                       <BrainCircuit size={16} className="mr-1" />
                       {showStreamingReasoning ? 'Hide reasoning' : 'Show reasoning'}
                     </button>
-                  </div>
-                )}
+                  )}
+                  
+                  {/* Streaming agent events toggle */}
+                  {streamingAgentEvents.length > 0 && (
+                    <button
+                      onClick={() => toggleAgentEvents()}
+                      className={`text-sm flex items-center ml-4 ${
+                        showAgentEvents 
+                          ? 'text-purple-500 dark:text-purple-400' 
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <RefreshCw size={16} className="mr-1" />
+                      {showAgentEvents ? 'Hide workflow' : 'Show workflow'}
+                    </button>
+                  )}
+                </div>
                 
                 {/* Streaming reasoning content display */}
                 {streamingReasoning && showStreamingReasoning && (
@@ -618,6 +903,11 @@ const ChatView: React.FC<ChatViewProps> = ({
                     </div>
                   </div>
                 )}
+                
+                {/* Streaming agent workflow timeline */}
+                {showAgentEvents && streamingAgentEvents.length > 0 &&
+                  <AgentTimeline events={streamingAgentEvents} />
+                }
               </div>
             </div>
           )}
@@ -694,7 +984,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                 <Tooltip
                   content="Allows the model to reason about it's response"
                   title={
-                    isCodingQuestion
+                    selectedModel === "deepseek/deepseek-r1:free"
                       ? "Model Selected: Reasoning"
                       : "Model Selected: Normal"
                   }

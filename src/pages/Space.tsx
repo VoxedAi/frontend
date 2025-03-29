@@ -718,7 +718,7 @@ const Space = () => {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out h-full pt-10`}>
+      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out h-full`}>
         {showChat && !showNote && <ChatInterface sidebarOpen={sidebarOpen} />}
         {showNote && !showChat && (
             <ResizablePanel defaultRatio={0.7}>

@@ -3,7 +3,6 @@ import type { Space } from "../types/space";
 import type { ChatMessage, ChatSession } from "../types/chat";
 import { addSpaceToWorkspace } from "./workspaceService";
 import { streamChatWithGemini } from "./geminiService";
-import { useNoteState } from "../hooks/useNoteState";
 
 /**
  * Create a new space for a user
@@ -476,7 +475,8 @@ export async function sendAndStreamChatMessage(
     consoleOutput?: string;
   },
   isNoteQuestion: boolean = false,
-  noteContent?: string
+  noteContent?: string,
+  activeFileId?: string
 ): Promise<{
   success: boolean;
   userMessageResult?: { success: boolean; data?: ChatMessage; error?: any };
@@ -544,6 +544,9 @@ export async function sendAndStreamChatMessage(
       isNoteQuestion,
       undefined,
       noteContent,
+      undefined,
+      spaceId,
+      activeFileId
     );
 
     console.log("Streaming complete. Saving AI message to Supabase");

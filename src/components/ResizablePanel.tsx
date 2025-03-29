@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMobile } from '../contexts/MobileContext';
+import { useLayoutState } from '../hooks/useLayoutState';
 
 interface ResizablePanelProps {
   children: [React.ReactNode, React.ReactNode]; // Left and right content
@@ -20,13 +21,17 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
   const [ratio, setRatio] = useState<number>(defaultRatio);
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const isMobile = useMobile();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [layout, setLayout] = useLayoutState();
+  const isCollapsed = layout.rightPanelCollapsed ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRatioBeforeCollapse = useRef<number>(defaultRatio);
 
   useEffect(() => {
-    setIsCollapsed(isMobile);
-  }, [isMobile]);
+    // Only set initial collapsed state on mobile if it's not already set in layout
+    if (isMobile && layout.rightPanelCollapsed === undefined) {
+      setLayout({ rightPanelCollapsed: true });
+    }
+  }, [isMobile, layout.rightPanelCollapsed, setLayout]);
 
   // Handle mouse down on separator
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -64,10 +69,10 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
   const toggleCollapse = () => {
     if (isCollapsed) {
       setRatio(prevRatioBeforeCollapse.current);
-      setIsCollapsed(false);
+      setLayout({ rightPanelCollapsed: false });
     } else {
       prevRatioBeforeCollapse.current = ratio;
-      setIsCollapsed(true);
+      setLayout({ rightPanelCollapsed: true });
     }
   };
 
